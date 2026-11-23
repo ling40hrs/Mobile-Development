@@ -19,6 +19,7 @@ Course archive. Kotlin / Android Studio.
 | # | Title | Date | Folder |
 |---|-------|------|--------|
 | 1 | [Activity 1: Kotlin Programming - Student Enrollment & Grade Management System](https://ciit.instructure.com/courses/26695/quizzes/11530) | 2026-09-22 | `homeworks/Activity 1/` |
+| 2 | [Activity 2: Student Management Mobile App Using Kotlin](https://ciit.instructure.com/courses/26695/quizzes/11552) | 2026-10-09 | `homeworks/Activity 2/` |
 
 ## Projects
 

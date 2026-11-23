@@ -1,0 +1,115 @@
+<resources>
+    <string name="app_name">Student Management Mobile App</string>
+    <string name="app_tagline">Register, search, enroll and manage student records in one place.</string>
+
+    <string name="stats_students">Students</string>
+    <string name="stats_enrollments">Enrollments</string>
+    <string name="stats_average">Average</string>
+    <string name="quick_actions">Quick actions</string>
+    <string name="register_student">Register Student</string>
+    <string name="view_students">View All Students</string>
+    <string name="search_students">Search Students</string>
+    <string name="how_to_use">How to use this app</string>
+    <string name="how_to_use_card_message">Register, enroll, grade and manage students step by step.</string>
+    <string name="how_to_use_message">1. Register a student with their personal details.\n2. Open a student to enroll them in one or more subjects.\n3. Add or update grades for every enrolled subject.\n4. Search, sort and filter the list to find students quickly.\n5. Tap and hold a student card for quick edit and delete options.</string>
+
+    <string name="students_title">Students</string>
+    <string name="student_details">Student Details</string>
+    <string name="edit_student">Edit Student</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="apply">Apply</string>
+    <string name="reset">Reset</string>
+    <string name="ok">OK</string>
+
+    <string name="student_number">Student Number</string>
+    <string name="first_name">First Name</string>
+    <string name="last_name">Last Name</string>
+    <string name="email_address">Email Address</string>
+    <string name="age">Age</string>
+    <string name="contact_number">Contact Number</string>
+    <string name="gender">Gender</string>
+    <string name="male">Male</string>
+    <string name="female">Female</string>
+    <string name="year_level">Year Level</string>
+    <string name="year_first">First Year</string>
+    <string name="year_second">Second Year</string>
+    <string name="year_third">Third Year</string>
+    <string name="year_fourth">Fourth Year</string>
+    <string name="personal_information">Personal information</string>
+    <string name="academic_information">Academic summary</string>
+    <string name="confirm_information">I confirm that all information provided is correct.</string>
+
+    <string name="search_hint">Search by first or last name</string>
+    <string name="sort_and_filter">Sort &amp; Filter</string>
+    <string name="sort_by">Sort by</string>
+    <string name="filter_by">Filter by</string>
+    <string name="enrolled_subjects">Enrolled subjects</string>
+    <string name="no_subjects_title">No subjects enrolled</string>
+    <string name="no_subjects_message">Enroll this student in at least one subject to record grades.</string>
+    <string name="enroll_subject">Enroll Subject</string>
+    <string name="add_grade">Add / Update Grade</string>
+    <string name="select_subject">Select subject</string>
+    <string name="grade">Grade (0 – 100)</string>
+    <string name="subjects_to_enroll">Subjects to enroll</string>
+    <string name="enrollment_hint">Tick one or more subjects. Subjects already taken are hidden.</string>
+    <string name="average_grade">Average grade</string>
+    <string name="student_card_meta">%1$s · %2$s · %3$s</string>
+    <string name="subjects_count">%1$d enrolled</string>
+    <string name="students_count">%1$d student(s)</string>
+    <string name="students_shown">Showing %1$d of %2$d student(s)</string>
+    <string name="value_not_available">Not available</string>
+    <string name="no_grade_yet">No grade yet</string>
+    <string name="grade_value">Grade: %1$s</string>
+
+    <string name="empty_students_title">No students registered yet</string>
+    <string name="empty_students_message">Tap the plus button to register the first student.</string>
+    <string name="empty_result_title">No matching students</string>
+    <string name="empty_result_message">Try another name or reset the sort and filter options.</string>
+
+    <string name="registered_success">Student registered successfully</string>
+    <string name="updated_success">Student record updated successfully</string>
+    <string name="deleted_success">Student removed successfully</string>
+    <string name="enrolled_success">Subjects enrolled successfully</string>
+    <string name="grade_saved_success">Grade saved successfully</string>
+    <string name="student_not_found">Student record no longer exists</string>
+
+    <string name="delete_title">Remove this student?</string>
+    <string name="delete_message">%1$s and all enrolled subjects will be permanently removed. This action cannot be undone.</string>
+    <string name="remove">Remove</string>
+    <string name="option_view">View details</string>
+
+    <string name="err_student_number_required">Student number is required</string>
+    <string name="err_student_number_invalid">Use 3 to 20 letters, numbers, spaces or dashes</string>
+    <string name="err_student_number_duplicate">This student number is already registered</string>
+    <string name="err_first_name_required">First name is required</string>
+    <string name="err_first_name_invalid">Use 2 to 40 letters, spaces, dots, hyphens or apostrophes</string>
+    <string name="err_last_name_required">Last name is required</string>
+    <string name="err_last_name_invalid">Use 2 to 40 letters, spaces, dots, hyphens or apostrophes</string>
+    <string name="err_email_required">Email address is required</string>
+    <string name="err_email_invalid">Enter a valid email address, example: name@mail.com</string>
+    <string name="err_email_duplicate">This email address is already registered</string>
+    <string name="err_age_required">Age is required</string>
+    <string name="err_age_invalid">Age must be a whole number</string>
+    <string name="err_age_range">Age must be between 15 and 60</string>
+    <string name="err_contact_required">Contact number is required</string>
+    <string name="err_contact_invalid">Enter 7 to 15 digits, spaces, plus or hyphen only</string>
+    <string name="err_gender_required">Select a gender</string>
+    <string name="err_year_required">Select a year level</string>
+    <string name="err_confirmation_required">Tick the checkbox to confirm your information</string>
+    <string name="err_grade_required">Grade is required</string>
+    <string name="err_grade_invalid">Grade must be a number</string>
+    <string name="err_grade_range">Grade must be between 0 and 100</string>
+    <string name="err_subject_required">Select at least one subject</string>
+    <string name="err_all_enrolled">All subjects are already enrolled</string>
+    <string name="err_no_enrollments">Enroll the student in a subject before adding a grade</string>
+
+    <string name="cd_back">Navigate back</string>
+    <string name="cd_search">Search students</string>
+    <string name="cd_add">Add student</string>
+    <string name="cd_avatar">Student avatar</string>
+    <string name="cd_edit">Edit</string>
+    <string name="cd_chevron">Open details</string>
+</resources>
