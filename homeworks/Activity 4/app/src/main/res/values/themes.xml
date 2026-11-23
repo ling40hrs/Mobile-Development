@@ -1,0 +1,8 @@
+<resources>
+    <!-- Base application theme with Material 3. Disable default action bar as Compose handles TopAppBar. -->
+    <style name="Theme.Beezy" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/beezy_surface_light</item>
+        <item name="android:navigationBarColor">@color/beezy_surface_light</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

@@ -1,0 +1,34 @@
+<resources>
+    <string name="app_name">Beezy</string>
+    <string name="tagline">Study made easy</string>
+    
+    <!-- Navigation -->
+    <string name="nav_decks">Decks</string>
+    <string name="nav_study">Study</string>
+    <string name="nav_pomodoro">Pomodoro</string>
+    <string name="nav_about">About</string>
+
+    <!-- General Actions -->
+    <string name="action_search">Search…</string>
+    <string name="action_create">Create</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_flip">Tap to Flip</string>
+    <string name="action_reset">Reset</string>
+    <string name="action_start">Start</string>
+    <string name="action_pause">Pause</string>
+
+    <!-- Ratings -->
+    <string name="rating_again">Again</string>
+    <string name="rating_hard">Hard</string>
+    <string name="rating_good">Good</string>
+    <string name="rating_easy">Easy</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_pomodoro">Pomodoro Timer</string>
+    <string name="notification_channel_pomodoro_desc">Notifications for ongoing focus sessions and breaks</string>
+    <string name="notification_channel_reviews">Study Reminders</string>
+    <string name="notification_channel_reviews_desc">Daily reminders for cards due for review</string>
+</resources>
