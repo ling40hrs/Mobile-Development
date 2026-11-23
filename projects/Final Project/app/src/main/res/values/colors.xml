@@ -1,0 +1,10 @@
+<resources>
+    <color name="beezy_primary">#F5A623</color>
+    <color name="beezy_primary_dark">#E09518</color>
+    <color name="beezy_bg_light">#EDE8DF</color>
+    <color name="beezy_surface_light">#E8E2D8</color>
+    <color name="beezy_bg_dark">#1A1916</color>
+    <color name="beezy_surface_dark">#22201C</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

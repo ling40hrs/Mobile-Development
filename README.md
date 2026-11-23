@@ -11,6 +11,7 @@ Course archive. Kotlin / Android Studio.
 ## Contents
 
 - `homeworks/` — in-class activities and assignments
+- `projects/` — final project
 - `docs/` — environment setup
 - `scripts/` — helpers
 
@@ -26,7 +27,7 @@ Course archive. Kotlin / Android Studio.
 
 | # | Title | Date | Folder |
 |---|-------|------|--------|
-| | | | |
+| 1 | [Final Project: Beezy — Study App](https://ciit.instructure.com/courses/26695/quizzes/11648) | 2026-11-23 | `projects/Final Project/` |
 
 ## How to open
 
