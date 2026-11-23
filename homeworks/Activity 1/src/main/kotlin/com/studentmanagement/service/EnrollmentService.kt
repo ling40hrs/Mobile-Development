@@ -7,14 +7,8 @@ import com.studentmanagement.model.Student
 import com.studentmanagement.model.Subject
 import com.studentmanagement.repository.StudentRepository
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
-/**
- * Data transfer object encapsulating a student's full academic report.
- */
 data class StudentReport(
     val student: Student,
     val summary: AcademicSummary,
@@ -22,20 +16,6 @@ data class StudentReport(
     val generatedAtMillis: Long = System.currentTimeMillis()
 )
 
-/**
- * High-level audit metrics generated concurrently via coroutines.
- */
-data class InstitutionAudit(
-    val totalStudents: Int,
-    val totalEnrolledSubjects: Int,
-    val overallAverageGwa: Double?,
-    val courseBreakdown: Map<String, Int>
-)
-
-/**
- * Business logic service coordinating student enrollment, grading, and reports.
- * Designed to be consumed by both CLI controllers and Android ViewModels.
- */
 class EnrollmentService(private val repository: StudentRepository) {
 
     fun registerStudent(
@@ -60,7 +40,6 @@ class EnrollmentService(private val repository: StudentRepository) {
             throw ValidationException("Year level must be between 1 and 4.")
         }
 
-        // Validate course program: only BSCS, BSEMC, and BSIS allowed
         val courseEnum = Course.fromCode(trimmedCourse)
             ?: throw ValidationException(
                 "Invalid course '$trimmedCourse'. Available courses: ${Course.availableCodes().joinToString(", ")}"
@@ -90,7 +69,7 @@ class EnrollmentService(private val repository: StudentRepository) {
         val codeUpper = subjectCode.trim().uppercase()
         if (codeUpper.isBlank()) throw ValidationException("Subject code cannot be blank.")
         if (subjectTitle.trim().isBlank()) throw ValidationException("Subject title cannot be blank.")
-        if (units <= 0 || units > 12) throw ValidationException("Subject units must be between 1 and 12.")
+        if (units <= 0 || units > 6) throw ValidationException("Subject units must be between 1 and 6.")
 
         if (student.hasSubject(codeUpper)) {
             throw SubjectAlreadyEnrolledException(studentId, codeUpper)
@@ -110,12 +89,14 @@ class EnrollmentService(private val repository: StudentRepository) {
         val enrolled = student.getEnrolledSubject(codeUpper)
             ?: throw SubjectNotFoundException(codeUpper)
 
-        // Validate standard grading scale: 1.00 (highest) to 5.00 (failing)
-        if (grade !in 1.00..5.00) {
-            throw InvalidGradeException(grade, "Grade must be on a 1.00 (highest) to 5.00 (failing) scale.")
+        // CIIT scale: 0.00 is a failing grade; passing grades are 1.00 to 4.00
+        if (grade != 0.0 && (grade < 1.00 || grade > 4.00)) {
+            throw InvalidGradeException(
+                grade,
+                "Grade must be 0.00 (Failed) or between 1.00 and 4.00 on the CIIT scale."
+            )
         }
 
-        // Round to 2 decimal places for clean precision
         val roundedGrade = Math.round(grade * 100.0) / 100.0
         enrolled.grade = roundedGrade
         repository.update(student)
@@ -129,17 +110,10 @@ class EnrollmentService(private val repository: StudentRepository) {
         return repository.delete(studentId)
     }
 
-    /**
-     * Asynchronously generates an individual student academic report.
-     * Demonstrates Kotlin coroutine dispatching ([Dispatchers.Default]) and non-blocking suspension.
-     */
     suspend fun generateStudentReportAsync(studentId: String): StudentReport =
         withContext(Dispatchers.Default) {
             val student = repository.findById(studentId)
                 ?: throw StudentNotFoundException(studentId)
-
-            // Simulate non-blocking asynchronous report synthesis / verification
-            delay(250)
 
             val summary = GradeCalculator.generateSummary(student.subjectList)
             StudentReport(
@@ -148,35 +122,4 @@ class EnrollmentService(private val repository: StudentRepository) {
                 subjects = student.subjectList.sortedBy { it.subject.code }
             )
         }
-
-    /**
-     * Demonstrates concurrent coroutine execution ([async] / [await]) across distinct metrics.
-     */
-    suspend fun performAuditAsync(): InstitutionAudit = coroutineScope {
-        val students = repository.getAll()
-
-        val countDeferred = async(Dispatchers.Default) {
-            students.size
-        }
-
-        val subjectCountDeferred = async(Dispatchers.Default) {
-            students.sumOf { it.enrolledSubjects.size }
-        }
-
-        val courseBreakdownDeferred = async(Dispatchers.Default) {
-            students.groupBy { it.course }.mapValues { it.value.size }
-        }
-
-        val gwaDeferred = async(Dispatchers.Default) {
-            val gwas = students.mapNotNull { GradeCalculator.calculateGWA(it.subjectList) }
-            if (gwas.isNotEmpty()) gwas.average() else null
-        }
-
-        InstitutionAudit(
-            totalStudents = countDeferred.await(),
-            totalEnrolledSubjects = subjectCountDeferred.await(),
-            overallAverageGwa = gwaDeferred.await(),
-            courseBreakdown = courseBreakdownDeferred.await()
-        )
-    }
 }

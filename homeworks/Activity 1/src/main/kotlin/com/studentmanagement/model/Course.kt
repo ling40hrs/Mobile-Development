@@ -1,9 +1,6 @@
 package com.studentmanagement.model
 
-/**
- * Standard degree programs offered in the system.
- * Only BSCS, BSEMC, and BSIS are permitted.
- */
+/** Degree programs offered here: BSCS, BSEMC, and BSIS only. */
 enum class Course(val code: String, val description: String) {
     BSCS("BSCS", "Bachelor of Science in Computer Science"),
     BSEMC("BSEMC", "Bachelor of Science in Entertainment and Multimedia Computing"),

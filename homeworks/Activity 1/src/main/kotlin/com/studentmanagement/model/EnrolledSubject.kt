@@ -1,8 +1,5 @@
 package com.studentmanagement.model
 
-/**
- * Status of an enrolled subject based on academic grading.
- */
 enum class SubjectStatus(val label: String) {
     IN_PROGRESS("In Progress"),
     PASSED("Passed"),
@@ -10,12 +7,10 @@ enum class SubjectStatus(val label: String) {
 }
 
 /**
- * Represents a student's enrollment in a particular subject, including their grade.
- *
- * Uses the standard Philippine collegiate grading scale:
- * 1.00 - 3.00 : Passed (1.00 is highest / excellent)
- * 3.01 - 5.00 : Failed (5.00 is failing grade)
- * null        : Grade not yet submitted (In Progress)
+ * CIIT AY 26-27 grading scale:
+ * 4.00 Excellent, 3.75-3.50 Superior, 3.25-3.00 Very Good, 2.75-2.50 Good,
+ * 2.25-2.00 Satisfactory, 1.75-1.50 Fair, 1.25-1.00 Passed, 0.00 Failed.
+ * null means no grade submitted yet.
  */
 data class EnrolledSubject(
     val subject: Subject,
@@ -24,17 +19,20 @@ data class EnrolledSubject(
     val status: SubjectStatus
         get() = when {
             grade == null -> SubjectStatus.IN_PROGRESS
-            grade!! <= 3.00 -> SubjectStatus.PASSED
+            grade!! >= 1.00 -> SubjectStatus.PASSED
             else -> SubjectStatus.FAILED
         }
 
     val remarks: String
         get() = when {
             grade == null -> "In Progress"
-            grade!! in 1.00..1.25 -> "Excellent"
-            grade!! in 1.26..1.75 -> "Very Good"
-            grade!! in 1.76..2.50 -> "Good"
-            grade!! in 2.51..3.00 -> "Passed"
+            grade!! >= 4.00 -> "Excellent"
+            grade!! >= 3.50 -> "Superior"
+            grade!! >= 3.00 -> "Very Good"
+            grade!! >= 2.50 -> "Good"
+            grade!! >= 2.00 -> "Satisfactory"
+            grade!! >= 1.50 -> "Fair"
+            grade!! >= 1.00 -> "Passed"
             else -> "Failed"
         }
 

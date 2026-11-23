@@ -1,7 +1,15 @@
+# Gradle
 .gradle/
 build/
+
+# IntelliJ IDEA / Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
 local.properties
-.idea/caches/
-.idea/workspace.xml
-.idea/libraries/
-*.hprof
+.DS_Store
+/captures
+.externalNativeBuild
+.cxx

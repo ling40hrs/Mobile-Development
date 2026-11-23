@@ -12,7 +12,6 @@ repositories {
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
-    testImplementation(kotlin("test"))
 }
 
 java {
@@ -33,8 +32,4 @@ application {
 
 tasks.named<JavaExec>("run") {
     standardInput = System.`in`
-}
-
-tasks.test {
-    useJUnitPlatform()
 }

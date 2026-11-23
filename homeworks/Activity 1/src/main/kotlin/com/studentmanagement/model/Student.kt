@@ -1,15 +1,7 @@
 package com.studentmanagement.model
 
-/**
- * Represents a registered student within the institution.
- *
- * @property id Unique institutional student ID (e.g., "1001")
- * @property firstName Given name
- * @property lastName Family name
- * @property course Degree program acronym (e.g., "BSIT")
- * @property yearLevel Academic year (1 through 4/5)
- * @property enrolledSubjects Map of enrolled subjects keyed by uppercase subject code
- */
+import com.studentmanagement.service.GradeCalculator
+
 data class Student(
     val id: String,
     val firstName: String,
@@ -32,6 +24,15 @@ data class Student(
 
     val totalPassedUnits: Int
         get() = enrolledSubjects.values.filter { it.isPassed }.sumOf { it.subject.units }
+
+    val gwa: Double?
+        get() = GradeCalculator.calculateGWA(enrolledSubjects.values)
+
+    val academicStanding: String
+        get() = GradeCalculator.evaluateStanding(
+            gwa = gwa,
+            hasDeficiency = enrolledSubjects.values.any { it.isCompleted && !it.isPassed }
+        )
 
     fun enrollSubject(subject: Subject): EnrolledSubject {
         val key = subject.code.uppercase()

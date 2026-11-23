@@ -4,25 +4,14 @@ import com.studentmanagement.model.Student
 import com.studentmanagement.service.GradeCalculator
 import com.studentmanagement.service.StudentReport
 
-/**
- * Console table and report formatting utility.
- */
 object TableFormatter {
 
-    /**
-     * Renders student collection in the format required by the specification:
-     * =================================
-     *               STUDENT LIST
-     * ===================================
-     * ID       NAME                 COURSE     YEAR
-     * -----------------------------------------------
-     * 1001     Juan Dela Cruz       BSIT       2
-     */
     fun printStudentList(students: List<Student>, title: String = "STUDENT LIST") {
+        val bannerWidth = maxOf(78, title.length)
         println()
-        println("=================================")
-        println(title.padStart((33 + title.length) / 2))
-        println("===================================")
+        println("=".repeat(bannerWidth))
+        println(title.padStart((bannerWidth + title.length) / 2))
+        println("=".repeat(bannerWidth))
         println()
 
         if (students.isEmpty()) {
@@ -31,30 +20,36 @@ object TableFormatter {
             return
         }
 
-        println("%-8s %-20s %-10s %s".format("ID", "NAME", "COURSE", "YEAR"))
-        println("-".repeat(47))
+        println("%-12s %-22s %-8s %-6s %-8s %s".format("ID", "NAME", "COURSE", "YEAR", "GWA", "STANDING"))
+        println("-".repeat(bannerWidth))
 
         for (student in students) {
-            val truncatedName = if (student.fullName.length > 20) {
-                student.fullName.substring(0, 17) + "..."
+            val truncatedName = if (student.fullName.length > 22) {
+                student.fullName.substring(0, 19) + "..."
             } else {
                 student.fullName
             }
-            println("%-8s %-20s %-10s %d".format(
-                student.id,
+            val truncatedId = if (student.id.length > 12) {
+                student.id.substring(0, 9) + "..."
+            } else {
+                student.id
+            }
+            val gwaStr = GradeCalculator.format(student.gwa)
+            val standingStr = student.academicStanding
+            println("%-12s %-22s %-8s %-6d %-8s %s".format(
+                truncatedId,
                 truncatedName,
                 student.course,
-                student.yearLevel
+                student.yearLevel,
+                gwaStr,
+                standingStr
             ))
         }
-        println("-".repeat(47))
+        println("-".repeat(bannerWidth))
         println("Total Students: ${students.size}")
         println()
     }
 
-    /**
-     * Formats an individual student's comprehensive academic grade report.
-     */
     fun printStudentReport(report: StudentReport) {
         val s = report.student
         val summary = report.summary

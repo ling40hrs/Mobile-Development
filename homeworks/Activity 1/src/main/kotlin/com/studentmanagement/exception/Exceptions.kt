@@ -1,8 +1,5 @@
 package com.studentmanagement.exception
 
-/**
- * Base sealed exception for all domain-specific errors in the system.
- */
 sealed class StudentManagementException(message: String) : RuntimeException(message)
 
 class StudentNotFoundException(val studentId: String) :
@@ -17,7 +14,7 @@ class SubjectAlreadyEnrolledException(val studentId: String, val subjectCode: St
 class SubjectNotFoundException(val subjectCode: String) :
     StudentManagementException("Subject with code '$subjectCode' was not found.")
 
-class InvalidGradeException(val grade: Double, val details: String = "Grade must be between 1.00 (highest) and 5.00 (failing).") :
+class InvalidGradeException(val grade: Double, val details: String = "Grade must be 0.00 (failing) or between 1.00 and 4.00.") :
     StudentManagementException("Invalid grade '$grade': $details")
 
 class ValidationException(message: String) :

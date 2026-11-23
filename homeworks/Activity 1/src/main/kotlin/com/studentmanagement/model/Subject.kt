@@ -1,12 +1,5 @@
 package com.studentmanagement.model
 
-/**
- * Represents an academic subject offering.
- *
- * @property code Unique subject identifier (e.g., "IT101", "CS102")
- * @property title Descriptive name of the subject
- * @property units Academic unit credit for the subject (typically 1 to 5)
- */
 data class Subject(
     val code: String,
     val title: String,

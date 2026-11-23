@@ -2,56 +2,38 @@
 
 [Canvas quiz](https://ciit.instructure.com/courses/26695/quizzes/11530)
 
-A console-based student information, subject enrollment, and grade management system written in Kotlin.
-
-This project is structured using clean architectural patterns (Model-Repository-Service-UI) with Kotlin Coroutines for asynchronous operations, making it easy to understand and directly transition into an Android application (e.g., using Room + ViewModel + Coroutines).
+A console student information system in Kotlin: register students, enroll subjects, record grades, and print reports.
 
 ---
 
 ## Features
 
 1. **Register Students** (`[1]`): Add students with validation for ID, name, course program, and year level.
-2. **View All Students** (`[2]`): Formatted tabular view displaying ID, Name, Course, and Year.
-3. **Search Students** (`[3]`): Case-insensitive multi-field search (first name, last name, or full name).
-4. **Enroll Subjects** (`[4]`): Enroll students into subjects with code, title, and unit credits (prevents duplicate subject enrollments).
-5. **Add / Update Grades** (`[5]`): Assign or update grades on the standard collegiate scale (1.00 to 5.00) with automatic remarks (Excellent, Very Good, Good, Passed, Failed).
-6. **Individual Student Report** (`[6]`): Asynchronously generated academic report card calculating Total Units, General Weighted Average (GWA), and Academic Standing (President's List, Dean's List, Good Standing, Warning).
-7. **Remove Student** (`[7]`): Safe deletion with confirmation prompt.
-8. **Sort / Filter Students** (`[8]`): Multi-criteria sorting (by ID, Name A-Z, Year Asc/Desc) and filtering (by Course, by Year Level).
-9. **Clean Exit** (`[0]`): Graceful termination.
+2. **View All Students** (`[2]`): Table of ID, name, course, year, GWA, and standing.
+3. **Search Students** (`[3]`): Case-insensitive search on first name, last name, or full name.
+4. **Enroll Subjects** (`[4]`): Enroll a student in a subject (code, title, units). Duplicate enrollments are blocked.
+5. **Add / Update Grades** (`[5]`): CIIT AY 26-27 scale — 0.00 or 1.00 to 4.00 — with remarks (Excellent, Superior, Very Good, Good, Satisfactory, Fair, Passed, Failed).
+6. **Individual Student Report** (`[6]`): Report card with total units, GWA, and standing (Excellent, Good, Failed, No Completed Subjects).
+7. **Remove Student** (`[7]`): Delete a record after a yes/no confirmation.
+8. **Sort / Filter Students** (`[8]`): Sort by ID, name, year, GWA, or standing; filter by course, year, or standing.
+9. **Exit** (`[0]`): Quit the program.
 
 ---
 
 ## Project Structure
 
 ```
-├── build.gradle.kts                   # Gradle configuration with Kotlin JVM & Coroutines
-├── settings.gradle.kts                # Project definition
-├── gradlew / gradlew.bat              # Gradle wrapper
+├── build.gradle.kts                   # Kotlin JVM + Coroutines
+├── settings.gradle.kts
+├── gradlew / gradlew.bat
 └── src
     ├── main/kotlin/com/studentmanagement
-    │   ├── Main.kt                    # Application entry point
-    │   ├── model/
-    │   │   ├── Course.kt              # Degree programs & year levels
-    │   │   ├── Subject.kt             # Subject definition (code, title, units)
-    │   │   ├── EnrolledSubject.kt     # Enrollment record with grade & remarks
-    │   │   └── Student.kt             # Student entity with enrolled subjects
-    │   ├── repository/
-    │   │   ├── StudentRepository.kt   # Repository interface
-    │   │   └── InMemoryStudentRepository.kt # In-memory implementation with seed data
-    │   ├── service/
-    │   │   ├── GradeCalculator.kt     # GWA calculation & honors evaluation
-    │   │   └── EnrollmentService.kt   # Business rules & coroutine async pipelines
-    │   ├── ui/
-    │   │   ├── ConsoleApp.kt          # Menu navigation & user workflows
-    │   │   ├── InputValidator.kt      # Safe console input parsing & bounds checking
-    │   │   └── TableFormatter.kt      # Formatted tabular and report card layouts
-    │   └── exception/
-    │       └── Exceptions.kt          # Domain exception hierarchy
-    └── test/kotlin/com/studentmanagement
-        ├── StudentRepositoryTest.kt   # Repository CRUD, search, and sorting tests
-        ├── GradeCalculatorTest.kt     # GWA computation & honors benchmark tests
-        └── EnrollmentServiceTest.kt   # Registration, grading, and coroutine tests
+    │   ├── Main.kt                    # entry point
+    │   ├── model/                     # Student, Subject, Course, EnrolledSubject
+    │   ├── repository/                # StudentRepository + in-memory impl with seed data
+    │   ├── service/                   # GWA/standing + enrollment rules
+    │   ├── ui/                        # console menu, input checks, table output
+    │   └── exception/                 # app exceptions
 ```
 
 ---
@@ -62,23 +44,13 @@ This project is structured using clean architectural patterns (Model-Repository-
 Open a terminal in the project directory and run:
 
 ```bash
-# On Windows (PowerShell or Command Prompt):
+# Windows
 .\gradlew.bat run --console=plain
 
-# On Linux / macOS:
+# Linux / macOS
 ./gradlew run --console=plain
 ```
 
-### In Android Studio or IntelliJ IDEA
-1. Open Android Studio or IntelliJ IDEA.
-2. Select **File -> Open...** and select this directory (`Mobile Dev (kotlin) projects`).
-3. Allow Gradle to sync.
-4. Open `src/main/kotlin/com/studentmanagement/Main.kt` and click the green **Run** arrow next to `fun main()`.
-
----
-
-## Running Automated Tests
-
-```bash
-.\gradlew.bat test
-```
+### In IntelliJ IDEA or Android Studio
+1. Open the project folder and let Gradle sync.
+2. Run `Main.kt` (`fun main`).

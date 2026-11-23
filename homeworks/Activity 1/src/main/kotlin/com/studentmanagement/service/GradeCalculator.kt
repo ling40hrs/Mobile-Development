@@ -3,9 +3,6 @@ package com.studentmanagement.service
 import com.studentmanagement.model.EnrolledSubject
 import java.util.Locale
 
-/**
- * Detailed academic evaluation summary for a student.
- */
 data class AcademicSummary(
     val totalEnrolledUnits: Int,
     val totalGradedUnits: Int,
@@ -14,15 +11,9 @@ data class AcademicSummary(
     val standing: String
 )
 
-/**
- * Calculates General Weighted Average (GWA) and determines academic honors or standing.
- */
 object GradeCalculator {
 
-    /**
-     * Calculates the General Weighted Average:
-     * sum(grade * units) / sum(units for graded subjects)
-     */
+    /** sum(grade * units) / sum(units), using only subjects that have a grade. */
     fun calculateGWA(enrolledSubjects: Collection<EnrolledSubject>): Double? {
         val completed = enrolledSubjects.filter { it.grade != null }
         if (completed.isEmpty()) return null
@@ -33,24 +24,24 @@ object GradeCalculator {
         return if (totalUnits > 0) totalWeightedPoints / totalUnits else null
     }
 
+    const val STANDING_EXCELLENT = "Excellent"
+    const val STANDING_GOOD = "Good"
+    const val STANDING_FAILED = "Failed"
+    const val STANDING_NONE = "No Completed Subjects"
+
     /**
-     * Determines academic standing based on standard collegiate benchmarks.
+     * Failed if there is any 0.00 or GWA under 1.00; Excellent at 3.00+; otherwise Good.
      */
     fun evaluateStanding(gwa: Double?, hasDeficiency: Boolean): String {
-        if (gwa == null) return "No Completed Subjects"
+        if (gwa == null) return STANDING_NONE
 
         return when {
-            hasDeficiency -> "Academic Warning (Has Failing Grade)"
-            gwa in 1.00..1.45 -> "President's Lister (Highest Honors)"
-            gwa in 1.46..1.75 -> "Dean's Lister (High Honors)"
-            gwa in 1.76..3.00 -> "Good Academic Standing"
-            else -> "Probationary Status"
+            hasDeficiency || gwa < 1.00 -> STANDING_FAILED
+            gwa >= 3.00 -> STANDING_EXCELLENT
+            else -> STANDING_GOOD
         }
     }
 
-    /**
-     * Generates a complete academic summary for a collection of enrolled subjects.
-     */
     fun generateSummary(subjects: Collection<EnrolledSubject>): AcademicSummary {
         val gwa = calculateGWA(subjects)
         val totalEnrolled = subjects.sumOf { it.subject.units }

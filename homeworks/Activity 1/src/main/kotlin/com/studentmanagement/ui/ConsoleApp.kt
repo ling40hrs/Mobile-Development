@@ -11,9 +11,6 @@ import com.studentmanagement.repository.StudentSortOption
 import com.studentmanagement.service.EnrollmentService
 import kotlinx.coroutines.runBlocking
 
-/**
- * Interactive command-line presentation controller.
- */
 class ConsoleApp(
     private val repository: StudentRepository,
     private val service: EnrollmentService,
@@ -25,7 +22,12 @@ class ConsoleApp(
 
         while (isRunning) {
             printMainMenu()
-            val choice = validator.readInt("Enter choice [0-8]: ", 0, 8)
+            val choice = try {
+                validator.readInt("Enter choice [0-8]: ", 0, 8)
+            } catch (e: NoSuchElementException) {
+                println("Input stream closed. Exiting...")
+                break
+            }
 
             try {
                 when (choice) {
@@ -43,6 +45,10 @@ class ConsoleApp(
                         isRunning = false
                     }
                 }
+            } catch (e: NoSuchElementException) {
+                println()
+                println("  Input stream closed. Exiting...")
+                isRunning = false
             } catch (e: Exception) {
                 println()
                 println("  [ERROR] An unexpected error occurred: ${e.message}")
@@ -189,8 +195,8 @@ class ConsoleApp(
             return
         }
 
-        println("Grading Scale: 1.00 (Highest) down to 3.00 (Passing), 5.00 (Failing)")
-        val grade = validator.readDouble("Enter Grade [1.00 - 5.00]: ", 1.00, 5.00)
+        println("CIIT AY 26-27 Grading Scale: 4.00 (Excellent) down to 1.00 (Passed), 0.00 (Failed)")
+        val grade = validator.readGrade("Enter Grade [0.00 or 1.00 - 4.00]: ")
 
         try {
             val updated = service.recordGrade(studentId, code, grade)
@@ -207,9 +213,7 @@ class ConsoleApp(
         println("--- VIEW INDIVIDUAL STUDENT REPORT ---")
         val studentId = validator.readNonEmptyString("Enter Student ID: ")
 
-        println("Retrieving academic record asynchronously...")
         val report = try {
-            // Demonstrate asynchronous coroutine execution with suspension
             runBlocking {
                 service.generateStudentReportAsync(studentId)
             }
@@ -246,78 +250,131 @@ class ConsoleApp(
     private fun sortFilterWorkflow() {
         var filterCourse: String? = null
         var filterYear: Int? = null
+        var filterStanding: String? = null
         var sortOption = StudentSortOption.BY_ID_ASC
 
         var inSubmenu = true
         while (inSubmenu) {
-            println()
-            println("=================================")
-            println("      SORT & FILTER OPTIONS      ")
-            println("=================================")
-            println("Active Course Filter : ${filterCourse ?: "None (All Courses)"}")
-            println("Active Year Filter   : ${filterYear?.let { "Year $it" } ?: "None (All Years)"}")
-            println("Active Sort Order    : ${sortOption.displayName}")
-            println("---------------------------------")
-            println("[1] Sort by Student ID")
-            println("[2] Sort by Student Name (A-Z)")
-            println("[3] Sort by Year Level (Ascending)")
-            println("[4] Sort by Year Level (Descending)")
-            println("[5] Filter by Course Program")
-            println("[6] Filter by Year Level")
-            println("[7] Reset Filters")
-            println("[8] View Results Table")
+            val results = repository.filterAndSort(filterCourse, filterYear, filterStanding, sortOption)
+
+            val filterDesc = buildList {
+                add("Course: ${filterCourse ?: "ALL"}")
+                add("Year: ${filterYear?.let { "Year $it" } ?: "ALL"}")
+                add("Standing: ${filterStanding ?: "ALL"}")
+            }.joinToString(" | ")
+
+            TableFormatter.printStudentList(
+                students = results,
+                title = "STUDENT DIRECTORY ($filterDesc | Sorted by: ${sortOption.displayName})"
+            )
+
+            println("--- SORT & FILTER MENU ---")
+            println("[1] Change Sort Order")
+            println("[2] Filter by Course Program")
+            println("[3] Filter by Year Level")
+            println("[4] Filter by Academic Standing (Excellent, Good, Failed)")
+            println("[5] Reset All Filters & Sorting")
             println("[0] Return to Main Menu")
             println()
 
-            val option = validator.readInt("Select an option [0-8]: ", 0, 8)
+            val option = validator.readInt("Select an option [0-5]: ", 0, 5)
             when (option) {
                 1 -> {
-                    sortOption = StudentSortOption.BY_ID_ASC
-                    println("  Sort order set to Student ID.")
+                    println()
+                    println("--- SELECT SORT STRATEGY ---")
+                    println("[1] Student ID (Ascending)")
+                    println("[2] Student ID (Descending)")
+                    println("[3] Student Name (A-Z)")
+                    println("[4] Student Name (Z-A)")
+                    println("[5] Year Level (1 to 4)")
+                    println("[6] Year Level (4 to 1)")
+                    println("[7] GWA / GPA (Highest to Lowest)")
+                    println("[8] GWA / GPA (Lowest to Highest)")
+                    println("[9] Academic Standing (Excellent -> Good -> Failed)")
+                    val sortChoice = validator.readInt("Enter choice [1-9]: ", 1, 9)
+                    sortOption = when (sortChoice) {
+                        1 -> StudentSortOption.BY_ID_ASC
+                        2 -> StudentSortOption.BY_ID_DESC
+                        3 -> StudentSortOption.BY_NAME_ASC
+                        4 -> StudentSortOption.BY_NAME_DESC
+                        5 -> StudentSortOption.BY_YEAR_ASC
+                        6 -> StudentSortOption.BY_YEAR_DESC
+                        7 -> StudentSortOption.BY_GWA_DESC
+                        8 -> StudentSortOption.BY_GWA_ASC
+                        9 -> StudentSortOption.BY_STANDING
+                        else -> sortOption
+                    }
+                    println("  [OK] Sort order set to: ${sortOption.displayName}")
                 }
                 2 -> {
-                    sortOption = StudentSortOption.BY_NAME_ASC
-                    println("  Sort order set to Student Name (A-Z).")
-                }
-                3 -> {
-                    sortOption = StudentSortOption.BY_YEAR_ASC
-                    println("  Sort order set to Year Level (Ascending).")
-                }
-                4 -> {
-                    sortOption = StudentSortOption.BY_YEAR_DESC
-                    println("  Sort order set to Year Level (Descending).")
-                }
-                5 -> {
+                    println()
+                    println("--- FILTER BY COURSE ---")
                     val available = Course.availableCodes().joinToString(", ")
+                    println("Available courses: $available")
                     val input = validator.readOptionalString("Enter course code to filter ($available) or blank to clear: ")
-                    filterCourse = input?.uppercase()
-                    println("  Course filter set to: ${filterCourse ?: "None"}")
-                }
-                6 -> {
-                    val input = validator.readOptionalString("Enter year level to filter (1-4) or blank to clear: ")
-                    val parsed = input?.toIntOrNull()
-                    if (parsed != null && parsed in Course.VALID_YEAR_RANGE) {
-                        filterYear = parsed
-                        println("  Year filter set to: Year $filterYear")
-                    } else if (parsed != null) {
-                        println("  [!] Invalid year level. Must be between 1 and 4.")
+                    if (input.isNullOrBlank()) {
+                        filterCourse = null
+                        println("  [OK] Course filter cleared.")
                     } else {
-                        filterYear = null
-                        println("  Year filter cleared.")
+                        val upper = input.trim().uppercase()
+                        if (Course.isValidCourse(upper)) {
+                            filterCourse = upper
+                            println("  [OK] Course filter set to: $filterCourse")
+                        } else {
+                            println("  [!] Invalid course '$input'. Available courses: $available")
+                        }
                     }
                 }
-                7 -> {
+                3 -> {
+                    println()
+                    println("--- FILTER BY YEAR LEVEL ---")
+                    val input = validator.readOptionalString("Enter year level to filter (1-4) or blank to clear: ")
+                    if (input.isNullOrBlank()) {
+                        filterYear = null
+                        println("  [OK] Year filter cleared.")
+                    } else {
+                        val parsed = input.trim().toIntOrNull()
+                        if (parsed != null && parsed in Course.VALID_YEAR_RANGE) {
+                            filterYear = parsed
+                            println("  [OK] Year filter set to: Year $filterYear")
+                        } else {
+                            println("  [!] Invalid year level. Must be between 1 and 4.")
+                        }
+                    }
+                }
+                4 -> {
+                    println()
+                    println("--- FILTER BY ACADEMIC STANDING ---")
+                    println("[1] Excellent")
+                    println("[2] Good")
+                    println("[3] Failed")
+                    println("[4] Clear Standing Filter")
+                    val standChoice = validator.readInt("Select standing [1-4]: ", 1, 4)
+                    when (standChoice) {
+                        1 -> {
+                            filterStanding = "Excellent"
+                            println("  [OK] Filter set to: Excellent")
+                        }
+                        2 -> {
+                            filterStanding = "Good"
+                            println("  [OK] Filter set to: Good")
+                        }
+                        3 -> {
+                            filterStanding = "Failed"
+                            println("  [OK] Filter set to: Failed")
+                        }
+                        4 -> {
+                            filterStanding = null
+                            println("  [OK] Standing filter cleared.")
+                        }
+                    }
+                }
+                5 -> {
                     filterCourse = null
                     filterYear = null
+                    filterStanding = null
                     sortOption = StudentSortOption.BY_ID_ASC
-                    println("  Filters and sorting reset to default.")
-                }
-                8 -> {
-                    val results = repository.filterAndSort(filterCourse, filterYear, sortOption)
-                    TableFormatter.printStudentList(
-                        students = results,
-                        title = "FILTERED & SORTED STUDENTS"
-                    )
+                    println("  [OK] All filters and sorting reset to default.")
                 }
                 0 -> inSubmenu = false
             }

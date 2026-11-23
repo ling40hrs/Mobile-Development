@@ -2,14 +2,8 @@ package com.studentmanagement.ui
 
 import java.util.Scanner
 
-/**
- * Robust input reader and validation utility for CLI interactions.
- */
 class InputValidator(private val scanner: Scanner = Scanner(System.`in`)) {
 
-    /**
-     * Reads a non-empty string from console.
-     */
     fun readNonEmptyString(prompt: String): String {
         while (true) {
             print(prompt)
@@ -24,9 +18,6 @@ class InputValidator(private val scanner: Scanner = Scanner(System.`in`)) {
         }
     }
 
-    /**
-     * Reads an optional string (returns null if user presses enter directly).
-     */
     fun readOptionalString(prompt: String): String? {
         print(prompt)
         if (!scanner.hasNextLine()) return null
@@ -34,9 +25,6 @@ class InputValidator(private val scanner: Scanner = Scanner(System.`in`)) {
         return if (input.isEmpty()) null else input
     }
 
-    /**
-     * Reads an integer within the specified inclusive range.
-     */
     fun readInt(prompt: String, min: Int, max: Int): Int {
         while (true) {
             print(prompt)
@@ -57,9 +45,6 @@ class InputValidator(private val scanner: Scanner = Scanner(System.`in`)) {
         }
     }
 
-    /**
-     * Reads a double value within the specified inclusive range.
-     */
     fun readDouble(prompt: String, min: Double, max: Double): Double {
         while (true) {
             print(prompt)
@@ -80,9 +65,14 @@ class InputValidator(private val scanner: Scanner = Scanner(System.`in`)) {
         }
     }
 
-    /**
-     * Prompts the user with a Yes/No confirmation.
-     */
+    fun readGrade(prompt: String): Double {
+        while (true) {
+            val value = readDouble(prompt, 0.00, 4.00)
+            if (value == 0.0 || value >= 1.00) return value
+            println("  [!] Grade must be 0.00 (Failed) or between 1.00 and 4.00.")
+        }
+    }
+
     fun readConfirmation(prompt: String, defaultIsYes: Boolean = false): Boolean {
         val hint = if (defaultIsYes) "[Y/n]" else "[y/N]"
         print("$prompt $hint: ")
@@ -100,9 +90,6 @@ class InputValidator(private val scanner: Scanner = Scanner(System.`in`)) {
         }
     }
 
-    /**
-     * Pauses and waits for user to press Enter before returning to menu.
-     */
     fun pressEnterToContinue() {
         print("Press Enter to continue...")
         if (scanner.hasNextLine()) {
