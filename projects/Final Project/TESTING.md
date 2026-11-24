@@ -38,6 +38,190 @@ Date: 2026-11-24
 | S9 | Only necessary permissions are requested | Inspect the merged manifest and `dumpsys package com.beezy.app` | Only the notification and foreground-service permissions used by the Pomodoro timer | `POST_NOTIFICATIONS`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE`; no storage, media, or vibration permissions | Pass |
 | S10 | Malformed credentials are rejected before an account exists | Create Account with a 2-character username, then with the password "short7" | Each attempt is rejected with a specific message and no account is created | "Username must be 3–20 characters using letters, numbers, dots, dashes, or underscores" then "Password must be at least 8 characters"; the app stayed on the form. The email rule is covered by `AuthValidationTest` | Pass |
 
+## Regression checklist
+
+Use this for the full pass before submission. Tick a box only after seeing the
+expected result on the emulator; log anything else in the bug table below. The
+executed cases above (F1–F10, S1–S10) are covered again here as `AU*`, `DK*`,
+etc., so a full run replaces them rather than repeating them.
+
+### Setup
+
+- [ ] `./gradlew test assembleDebug assembleRelease` green; 27 unit tests pass
+- [ ] Clean install: `adb uninstall com.beezy.app` then `./gradlew installDebug`
+- [ ] Sign in as `demo` / `password123`; starter decks are the two tutorials
+- [ ] Test data ready: one large deck (50 cards), one empty deck, one 1-card deck, one card with emoji
+- [ ] Rotation pair ready: `settings put system accelerometer_rotation 0`, `user_rotation 1/0`; restore `accelerometer_rotation 1` at the end
+
+### AU — Authentication
+
+- [ ] AU1 First launch opens the sign-in screen, not the deck list
+- [ ] AU2 Demo Auto-fill fills `demo` / `password123`; Sign In opens Decks
+- [ ] AU3 Create Account with a valid username, email, and password signs in and seeds two decks
+- [ ] AU4 Sign in with the email instead of the username works
+- [ ] AU5 Wrong password and unknown username both show "Incorrect username or password."
+- [ ] AU6 Duplicate username or email is rejected without creating an account
+- [ ] AU7 Short username, bad email, and short password each show their own message
+- [ ] AU8 Password shows dots, the eye reveals it, a second tap masks it again
+- [ ] AU9 Session survives force-stop and relaunch
+- [ ] AU10 Log Out returns to auth, shows no account chip, and stays signed out after relaunch
+
+### DK — Decks
+
+- [ ] DK1 Create with title only; dialog closes and the deck appears
+- [ ] DK2 Create with description and comma-separated tags; tags render as chips
+- [ ] DK3 Blank or whitespace title keeps Create disabled
+- [ ] DK4 200-character title and description wrap without clipping
+- [ ] DK5 Edit deck: dialog is prefilled, Save updates the card, force-stop keeps it
+- [ ] DK6 Delete deck: confirmation appears; Cancel keeps it, Delete removes it and its cards
+- [ ] DK7 Star toggles, sorts starred first, and survives relaunch
+- [ ] DK8 Search matches title, description, and tag; no match shows the empty state
+- [ ] DK9 Tag chip filters; tapping the same chip clears it
+- [ ] DK10 Sort Newest, Oldest, Title (A–Z), and Most Cards reorder correctly
+- [ ] DK11 Empty state CTA opens the create dialog
+- [ ] DK12 Smart Notes import with `Q:`/`A:` text creates a deck with cards; malformed text creates the deck and does not crash
+
+### CD — Cards
+
+- [ ] CD1 Add a valid question/answer pair; count and maturity update
+- [ ] CD2 Blank question or answer keeps Save disabled
+- [ ] CD3 Edit a card; the new text appears immediately and after relaunch
+- [ ] CD4 Delete asks for confirmation; Cancel keeps it, Delete returns the count
+- [ ] CD5 Search matches question, answer, and tag
+- [ ] CD6 Tag filter selects and clears
+- [ ] CD7 A tag containing a comma splits on reload; no data loss
+- [ ] CD8 A 50-card deck scrolls smoothly and stays responsive
+
+### FC — Flashcards
+
+- [ ] FC1 Tap flips front → back; tap again flips back
+- [ ] FC2 Again, Hard, Good, Easy each advance to the next card
+- [ ] FC3 The last card opens the session-complete dialog
+- [ ] FC4 Restart session returns to card 1 and clears the complete state
+- [ ] FC5 Shuffle reorders cards, resets to card 1, and highlights the icon
+- [ ] FC6 Prev is disabled on card 1; Next is disabled on the last card
+- [ ] FC7 Rating changes reps, interval, ease, and due date in the database
+- [ ] FC8 Reset Progress asks first, then clears review data for that deck only
+- [ ] FC9 Rotation keeps the card, the flipped side, and the counter
+
+### QZ — Quiz
+
+- [ ] QZ1 Quiz Mode opens on a deck with cards; it is disabled for an empty deck
+- [ ] QZ2 A correct answer increments SCORE; a wrong one does not
+- [ ] QZ3 The next question loads automatically after about one second
+- [ ] QZ4 A second tap during the reveal window is ignored
+- [ ] QZ5 The result dialog shows the right percentage and Retry restarts at question 1
+- [ ] QZ6 A one-card deck still offers four options
+- [ ] QZ7 Rotation keeps the current question and score
+- [ ] QZ8 Exit returns to the Study screen with no duplicate entry in the back stack
+
+### PM — Pomodoro
+
+- [ ] PM1 First Start requests the notification permission
+- [ ] PM2 Deny keeps the timer stopped and the app alive
+- [ ] PM3 Allow starts the countdown; the ring and text tick together
+- [ ] PM4 Pause and Resume work
+- [ ] PM5 Reset returns to the current mode's full length
+- [ ] PM6 Skip advances Focus → Short → Focus → Long after four focus sessions
+- [ ] PM7 The foreground notification appears, updates, and disappears on stop
+- [ ] PM8 Backgrounding the app keeps the timer running
+- [ ] PM9 Screen off/on keeps the timer running
+- [ ] PM10 Timer settings opens with the current 25/5/15 values
+- [ ] PM11 Steppers clamp 5–90, 5–30, 5–60 in 5-minute steps; Save is disabled with no changes
+- [ ] PM12 Save updates Reset and each mode, and the values survive force-stop
+- [ ] PM13 Save during a run keeps the countdown; Reset afterwards uses the new length
+- [ ] PM14 Force-stop during a run leaves no orphan notification
+
+### NV — Navigation and back
+
+- [ ] NV1 All routes open: auth, decks, study, flashcards, quiz, pomodoro, about, privacy, terms
+- [ ] NV2 Bottom tabs switch without stacking duplicate screens
+- [ ] NV3 Study tab opens the first deck; with no decks it returns to Decks
+- [ ] NV4 Back from flashcards and quiz returns to the same deck's Study screen
+- [ ] NV5 Back from Study returns to Decks
+- [ ] NV6 Back on Decks exits to the launcher
+- [ ] NV7 Back dismisses every dialog without leaving the screen
+- [ ] NV8 Logout from About clears the whole stack; back cannot reach old screens
+
+### AB — About and settings
+
+- [ ] AB1 Edit Profile changes the display name; it survives relaunch
+- [ ] AB2 Avatar selection updates the top bar and About header
+- [ ] AB3 Light, Dark, and System themes apply immediately and persist
+- [ ] AB4 Help opens and closes
+- [ ] AB5 Privacy Policy and Terms of Service open and back correctly
+- [ ] AB6 Reset All Data asks first; Cancel changes nothing
+- [ ] AB7 Reset All Data restores the starter decks for the signed-in account only
+- [ ] AB8 Delete Account asks first, removes the account, and returns to auth
+- [ ] AB9 A 40-character display name truncates instead of overflowing
+- [ ] AB10 With no session, About is unreachable
+
+### DB — Persistence and data
+
+- [ ] DB1 Decks, cards, profile, theme, and timer settings survive a full restart
+- [ ] DB2 `beezy.db` is version 3 with `decks`, `cards`, and `users`
+- [ ] DB3 `database/schema.sql` matches `BeezyDatabase`
+- [ ] DB4 `database/beezy.db` holds only the demo account and its starter decks
+- [ ] DB5 A second account sees only its own decks and cards
+- [ ] DB6 Deleting a deck deletes its cards
+- [ ] DB7 Deleting an account deletes its decks, cards, and user row
+- [ ] DB8 Data survives a low-memory kill and relaunch
+
+### RS — Resilience and error paths
+
+- [ ] RS1 Forced deck insert failure shows the inline banner, no crash, no deck (F10)
+- [ ] RS2 Forced card insert failure shows the banner inside Add Card and keeps the typed text
+- [ ] RS3 Forced deck delete failure shows the banner and the deck stays listed
+- [ ] RS4 Failed flashcard rating keeps the card and shows the banner
+- [ ] RS5 Read failure at launch does not crash or lose existing data
+- [ ] RS6 Process death in flashcards or quiz restarts the session cleanly (accepted)
+- [ ] RS7 Rapid taps on Create, Save, and Delete never duplicate a record
+
+### UI — Theme, layout, accessibility
+
+- [ ] UI1 Light and dark themes use the same tokens; no raw colours or unreadable text
+- [ ] UI2 Rotation keeps every screen usable, with nothing clipped by the bottom bar
+- [ ] UI3 Font scale 1.3 and 2.0 keep labels readable and buttons reachable
+- [ ] UI4 Keyboard (adjustResize) never covers the field being edited or the submit button
+- [ ] UI5 Empty states appear for decks, cards, and search
+- [ ] UI6 Icon-only buttons have content descriptions; touch targets are at least 48 dp
+
+### SEC — Security
+
+- [ ] SEC1 Password hashes start with `pbkdf2$120000$` and do not contain the password
+- [ ] SEC2 A legacy 64-char hash account is rehashed on its next login
+- [ ] SEC3 Every deck/card query takes `userId`; two accounts cannot see each other
+- [ ] SEC4 `' OR 1=1 --` in deck, card, tag, search, username, and email is stored as text
+- [ ] SEC5 Failed writes show fixed text only — no exception, SQL, or file path
+- [ ] SEC6 `dumpsys package` lists only the three Pomodoro permissions
+- [ ] SEC7 `allowBackup="false"` and no extraction rules
+- [ ] SEC8 No secrets or keys in the APK or sources
+- [ ] SEC9 No credential or record content in logcat
+- [ ] SEC10 The database and preferences are app-private; nothing is world-readable
+
+### Release pass
+
+- [ ] `apksigner verify --print-certs` shows the Beezy certificate
+- [ ] Uninstall the debug build, install `app-release.apk`, launch
+- [ ] Smoke the release build: AU2, DK1, CD1, FC1–FC3, QZ1–QZ3, PM3, AB3, AB8
+- [ ] No debug-only behaviour differs; no ANR or crash in logcat
+
+## Bug log
+
+| ID | Build | Steps | Expected | Actual | Severity | Status |
+|----|-------|-------|----------|--------|----------|--------|
+| | | | | | | |
+
+Severity: **P1** crash, data loss, or account leak; **P2** feature broken or an
+error the user cannot see; **P3** layout or copy issue.
+
+## Exit criteria
+
+- Every checklist item above is either ticked or logged as a P3.
+- No P1 or P2 open; no crash or ANR in the logcat of the final run.
+- The release build passes its smoke list.
+- This file and `README.md` reflect the final build and screenshots.
+
 ## Not covered
 
 - Process death during a flashcard or quiz session restarts it; only rotation is
