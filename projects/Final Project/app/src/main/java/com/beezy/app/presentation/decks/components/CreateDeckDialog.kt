@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import com.beezy.app.presentation.components.BeezyButton
 import com.beezy.app.presentation.components.BeezySecondaryButton
 import com.beezy.app.presentation.components.BeezyTextField
+import com.beezy.app.presentation.components.ErrorBanner
 import com.beezy.app.presentation.theme.BeezyTheme
 import com.beezy.app.presentation.theme.ButtonShape
 import com.beezy.app.presentation.theme.CardShape
@@ -41,7 +42,9 @@ import com.beezy.app.presentation.theme.PillShape
 fun CreateDeckDialog(
     onDismiss: () -> Unit,
     onCreateManual: (title: String, description: String, tags: List<String>) -> Unit,
-    onCreateFromText: (title: String, description: String, tags: List<String>, rawText: String) -> Unit
+    onCreateFromText: (title: String, description: String, tags: List<String>, rawText: String) -> Unit,
+    errorMessage: String? = null,
+    onDismissError: () -> Unit = {}
 ) {
     val colors = BeezyTheme.colors
     var selectedTab by remember { mutableIntStateOf(0) } // 0 = Manual, 1 = Smart Import
@@ -70,6 +73,14 @@ fun CreateDeckDialog(
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
+
+                errorMessage?.let { message ->
+                    Spacer(modifier = Modifier.height(12.dp))
+                    ErrorBanner(
+                        message = message,
+                        onDismiss = onDismissError
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 

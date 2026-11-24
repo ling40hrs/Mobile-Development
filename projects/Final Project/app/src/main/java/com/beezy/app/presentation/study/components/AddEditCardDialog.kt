@@ -30,6 +30,7 @@ import com.beezy.app.domain.model.Card
 import com.beezy.app.presentation.components.BeezyButton
 import com.beezy.app.presentation.components.BeezySecondaryButton
 import com.beezy.app.presentation.components.BeezyTextField
+import com.beezy.app.presentation.components.ErrorBanner
 import com.beezy.app.presentation.theme.BeezyTheme
 import com.beezy.app.presentation.theme.CardShape
 
@@ -38,7 +39,9 @@ import com.beezy.app.presentation.theme.CardShape
 fun AddEditCardDialog(
     initialCard: Card?,
     onDismiss: () -> Unit,
-    onSave: (question: String, answer: String, tag: String?) -> Unit
+    onSave: (question: String, answer: String, tag: String?) -> Unit,
+    errorMessage: String? = null,
+    onDismissError: () -> Unit = {}
 ) {
     val colors = BeezyTheme.colors
 
@@ -67,6 +70,14 @@ fun AddEditCardDialog(
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
+
+                errorMessage?.let { message ->
+                    Spacer(modifier = Modifier.height(12.dp))
+                    ErrorBanner(
+                        message = message,
+                        onDismiss = onDismissError
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 

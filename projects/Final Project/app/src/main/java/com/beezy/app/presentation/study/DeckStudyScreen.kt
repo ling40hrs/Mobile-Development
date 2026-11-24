@@ -376,7 +376,9 @@ fun DeckStudyScreen(
             onDismiss = { viewModel.closeAddEditCardDialog() },
             onSave = { q, a, tag ->
                 viewModel.saveCard(q, a, tag)
-            }
+            },
+            errorMessage = state.errorMessage,
+            onDismissError = { viewModel.clearError() }
         )
     }
 

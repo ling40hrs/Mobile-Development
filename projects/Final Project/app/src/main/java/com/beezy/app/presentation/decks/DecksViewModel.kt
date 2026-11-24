@@ -67,7 +67,12 @@ class DecksViewModel(
     }
 
     fun setCreateDialogOpen(open: Boolean) {
-        _uiState.update { it.copy(isCreateDialogOpen = open) }
+        _uiState.update {
+            it.copy(
+                isCreateDialogOpen = open,
+                errorMessage = if (open) null else it.errorMessage
+            )
+        }
     }
 
     fun clearError() {

@@ -19,9 +19,9 @@ Date: 2026-11-24
 | F5 | Quiz attempt | Open a deck → Quiz Mode → select an answer | The chosen option is marked, the score updates, and the next question loads automatically after about one second | Option B was marked correct, SCORE updated, Question 2 loaded | Pass |
 | F6 | Pomodoro timer and notification | Pomodoro → Start → allow notifications | The countdown starts, a foreground notification shows the remaining time, and Pause/Reset/Skip work | Permission dialog shown, countdown ran (24:56 captured), notification "Beezy Focus Session" on `beezy_pomodoro_channel`, controls respond | Pass |
 | F7 | Edit a deck | Decks → pencil icon on a deck → change the title → Save Changes, force-stop, relaunch | The dialog opens prefilled, the card updates without a relaunch, and the change survives a restart | Dialog opened with the current title, description, and tags; the card title changed immediately and was still there after relaunch | Pass |
-| F8 | Rotation keeps study sessions | Open a deck → Flashcards, flip a card, note the counter; rotate to landscape and back. Then Quiz → answer two questions → rotate twice. Then type a search on the study screen and rotate | The same card stays flipped at the same counter; the quiz keeps its question and score; the search text and tag filter stay | Not run yet — recorded for the next emulator pass | Pending |
-| F9 | Timer settings persist and drive the timer | Pomodoro → Timer settings → focus 30, short 10, long 20 → Save → Reset; switch to Short break and back; force-stop and relaunch | Reset shows 30:00, each mode uses its saved length, and the values survive a restart | Not run yet — recorded for the next emulator pass | Pending |
-| F10 | A failed write shows an error, not a crash | Debug build: create a `fail_deck_insert` trigger on `decks` with `sqlite3` under `run-as`, then create a deck; drop the trigger and create again | A dismissible error banner appears, the app stays up, no deck is added, and the next create succeeds | Not run yet — recorded for the next emulator pass | Pending |
+| F8 | Rotation keeps study sessions | Open a deck → Flashcards, flip a card, note the counter; rotate to landscape and back. Then Quiz → answer two questions → rotate twice. Then type a search on the study screen and rotate | The same card stays flipped at the same counter; the quiz keeps its question and score; the search text and tag filter stay | Flashcard stayed on "Card 2 of 3", answer side, after landscape and back; quiz kept "Question 3 of 3" and "SCORE: 1" after both rotations; the study screen kept the "card" search and the Recall tag, and the filtered card was still listed | Pass |
+| F9 | Timer settings persist and drive the timer | Pomodoro → Timer settings → focus 30, short 10, long 20 → Save → Reset; switch to Short break and back; force-stop and relaunch | Reset shows 30:00, each mode uses its saved length, and the values survive a restart | Save set the current view to 30:00; Short break showed 10:00 and Long break 20:00; after force-stop and relaunch Focus was still 30:00. Changing Focus to 35 while running kept the countdown at 29:12, and Reset then showed 35:00 | Pass |
+| F10 | A failed write shows an error, not a crash | Debug build: make the database directory read-only (`run-as … chmod 500 databases`) since the emulator image has no `sqlite3`, then create a deck; restore the permissions and create again | A dismissible error banner appears, the app stays up, no deck is added, and the next create succeeds | The dialog showed "Could not create the deck. Please try again." inline with the typed title intact, the app stayed up, and the deck was absent; after `chmod 700` the same create succeeded | Pass |
 
 ## Security test cases
 
@@ -40,8 +40,6 @@ Date: 2026-11-24
 
 ## Not covered
 
-- F8–F10 above are recorded but not yet executed; the emulator was offline while
-  the change was made. Run them before submission.
 - Process death during a flashcard or quiz session restarts it; only rotation is
   preserved.
 - Real-device testing; all results are from the emulator.

@@ -62,11 +62,15 @@ class DeckStudyViewModel(
     }
 
     fun openAddCardDialog() {
-        _uiState.update { it.copy(isAddEditCardDialogOpen = true, editingCard = null) }
+        _uiState.update {
+            it.copy(isAddEditCardDialogOpen = true, editingCard = null, errorMessage = null)
+        }
     }
 
     fun openEditCardDialog(card: Card) {
-        _uiState.update { it.copy(isAddEditCardDialogOpen = true, editingCard = card) }
+        _uiState.update {
+            it.copy(isAddEditCardDialogOpen = true, editingCard = card, errorMessage = null)
+        }
     }
 
     fun closeAddEditCardDialog() {

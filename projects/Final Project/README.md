@@ -165,3 +165,7 @@ Sign in with `demo` / `password123`, or create an account.
 | Masked password | Edit deck |
 |-----------------|-----------|
 | ![Masked password](screenshots/12-password-masked.png) | ![Edit deck](screenshots/13-deck-edit.png) |
+
+| Timer settings | Write error |
+|----------------|-------------|
+| ![Timer settings](screenshots/14-timer-settings.png) | ![Write error](screenshots/15-write-error.png) |

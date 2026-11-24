@@ -273,7 +273,9 @@ fun DecksScreen(
             },
             onCreateFromText = { title, desc, tags, rawText ->
                 viewModel.createDeckFromText(title, desc, tags, rawText)
-            }
+            },
+            errorMessage = state.errorMessage,
+            onDismissError = { viewModel.clearError() }
         )
     }
 
