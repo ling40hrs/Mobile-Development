@@ -41,13 +41,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.beezy.app.domain.model.Deck
 import com.beezy.app.presentation.components.BeezyButton
 import com.beezy.app.presentation.components.BeezySecondaryButton
 import com.beezy.app.presentation.components.BeezyTextField
 import com.beezy.app.presentation.components.EmptyStateView
+import com.beezy.app.presentation.components.ErrorBanner
 import com.beezy.app.presentation.components.TagChip
 import com.beezy.app.presentation.decks.components.CreateDeckDialog
 import com.beezy.app.presentation.decks.components.DeckItemCard
+import com.beezy.app.presentation.decks.components.EditDeckDialog
 import com.beezy.app.presentation.theme.BeezyAccent
 import com.beezy.app.presentation.theme.BeezyTheme
 import com.beezy.app.presentation.theme.ButtonShape
@@ -66,6 +69,7 @@ fun DecksScreen(
     val colors = BeezyTheme.colors
 
     var deckToDeleteId by remember { mutableStateOf<String?>(null) }
+    var deckToEdit by remember { mutableStateOf<Deck?>(null) }
 
     Box(
         modifier = modifier
@@ -168,6 +172,17 @@ fun DecksScreen(
                 }
             }
 
+            // Write failure banner
+            state.errorMessage?.let { message ->
+                ErrorBanner(
+                    message = message,
+                    onDismiss = { viewModel.clearError() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
+
             // Deck List Content
             when {
                 state.isLoading -> {
@@ -201,6 +216,7 @@ fun DecksScreen(
                                 deck = deck,
                                 onClick = { onNavigateToDeck(deck.id) },
                                 onToggleStar = { viewModel.toggleStar(deck.id, deck.starred) },
+                                onEdit = { deckToEdit = deck },
                                 onDelete = { deckToDeleteId = deck.id }
                             )
                         }
@@ -257,6 +273,18 @@ fun DecksScreen(
             },
             onCreateFromText = { title, desc, tags, rawText ->
                 viewModel.createDeckFromText(title, desc, tags, rawText)
+            }
+        )
+    }
+
+    // Edit Deck Dialog
+    deckToEdit?.let { deck ->
+        EditDeckDialog(
+            deck = deck,
+            onDismiss = { deckToEdit = null },
+            onSave = { title, desc, tags ->
+                viewModel.updateDeck(deck.id, title, desc, tags)
+                deckToEdit = null
             }
         )
     }

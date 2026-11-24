@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 
 class QuizViewModel(
     private val deckId: String,
+    private val userId: String,
     private val deckRepository: DeckRepository,
     private val cardRepository: CardRepository,
     private val generateQuizUseCase: GenerateQuizUseCase
@@ -28,9 +29,9 @@ class QuizViewModel(
 
     private fun loadQuiz() {
         viewModelScope.launch {
-            val deck = deckRepository.getDeckById(deckId)
-            val deckCards = cardRepository.getCardsForDeck(deckId)
-            val allCards = cardRepository.getAllCards()
+            val deck = deckRepository.getDeckById(deckId, userId)
+            val deckCards = cardRepository.getCardsForDeck(deckId, userId)
+            val allCards = cardRepository.getAllCards(userId)
 
             val questions = generateQuizUseCase(deckCards, allCards)
 

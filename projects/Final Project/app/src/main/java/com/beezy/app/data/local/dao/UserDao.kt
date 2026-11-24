@@ -7,6 +7,7 @@ interface UserDao {
     suspend fun getUserByUsernameOrEmail(identifier: String): UserEntity?
     suspend fun getUserById(id: String): UserEntity?
     suspend fun updateUserProfile(id: String, displayName: String, avatarIndex: Int): Int
+    suspend fun updatePasswordHash(id: String, passwordHash: String): Int
     suspend fun deleteUser(id: String): Int
     suspend fun getAllUsers(): List<UserEntity>
 }

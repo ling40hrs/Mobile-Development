@@ -1,5 +1,10 @@
 package com.beezy.app.presentation.pomodoro
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,26 +18,35 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.beezy.app.presentation.components.BeezyButton
 import com.beezy.app.presentation.components.CircularTimerProgress
+import com.beezy.app.presentation.pomodoro.dialogs.TimerSettingsDialog
 import com.beezy.app.presentation.theme.BeezyAccent
 import com.beezy.app.presentation.theme.BeezyTheme
 import com.beezy.app.presentation.theme.ButtonShape
@@ -47,6 +61,30 @@ fun PomodoroScreen(
     val state by viewModel.uiState.collectAsState()
     val colors = BeezyTheme.colors
 
+    val context = LocalContext.current
+    var pendingStart by remember { mutableStateOf(false) }
+    val notificationPermission = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) {
+        if (pendingStart) {
+            pendingStart = false
+            viewModel.toggleStartPause()
+        }
+    }
+    val startPause = {
+        val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        if (needsPermission) {
+            pendingStart = true
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            viewModel.toggleStartPause()
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -55,9 +93,10 @@ fun PomodoroScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // 1. Mode Switcher Tabs
             Row(
@@ -96,7 +135,7 @@ fun PomodoroScreen(
             ) {
                 CircularTimerProgress(
                     progress = state.progress,
-                    size = 280.dp,
+                    size = 220.dp,
                     strokeWidth = 14.dp,
                     progressColor = if (state.currentMode == PomodoroMode.FOCUS) colors.accent else com.beezy.app.presentation.theme.GradeGoodColor
                 ) {
@@ -189,7 +228,7 @@ fun PomodoroScreen(
                                 shape = PillShape,
                                 cornerRadius = 999.dp
                             )
-                            .clickable { viewModel.toggleStartPause() }
+                            .clickable { startPause() }
                             .padding(horizontal = 36.dp, vertical = 16.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -231,7 +270,46 @@ fun PomodoroScreen(
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
+
+                // Timer duration settings
+                Row(
+                    modifier = Modifier
+                        .clip(PillShape)
+                        .background(colors.surface2)
+                        .clickable { viewModel.setSettingsDialogOpen(true) }
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = null,
+                        tint = colors.textSecondary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Timer settings",
+                        color = colors.textPrimary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
+    }
+
+    if (state.isSettingsDialogOpen) {
+        TimerSettingsDialog(
+            focusMinutes = state.focusMinutes,
+            shortBreakMinutes = state.shortBreakMinutes,
+            longBreakMinutes = state.longBreakMinutes,
+            isRunning = state.isRunning,
+            onDismiss = { viewModel.setSettingsDialogOpen(false) },
+            onSave = { focus, shortBreak, longBreak ->
+                viewModel.saveDurations(focus, shortBreak, longBreak)
+            }
+        )
     }
 }

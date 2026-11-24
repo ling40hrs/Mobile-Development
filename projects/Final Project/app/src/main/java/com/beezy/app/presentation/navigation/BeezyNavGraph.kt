@@ -8,11 +8,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,6 +22,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -28,6 +33,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.beezy.app.di.AppContainer
+import com.beezy.app.domain.model.User
 import com.beezy.app.presentation.about.AVATAR_OPTIONS
 import com.beezy.app.presentation.about.AboutScreen
 import com.beezy.app.presentation.about.AboutViewModel
@@ -49,10 +55,51 @@ import com.beezy.app.presentation.study.DeckStudyScreen
 import com.beezy.app.presentation.study.DeckStudyViewModel
 import com.beezy.app.presentation.theme.BeezyTheme
 import com.beezy.app.presentation.theme.PillShape
+import kotlinx.coroutines.flow.map
+
+private data class SessionSnapshot(val loaded: Boolean, val user: User?)
 
 @Composable
 fun BeezyNavGraph(
     appContainer: AppContainer,
+    isDarkTheme: Boolean,
+    onToggleTheme: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val session by appContainer.authRepository.currentUserFlow
+        .map { SessionSnapshot(loaded = true, user = it) }
+        .collectAsState(initial = SessionSnapshot(loaded = false, user = null))
+
+    if (!session.loaded) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(BeezyTheme.colors.bg),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = BeezyTheme.colors.accent)
+        }
+        return
+    }
+
+    val user = session.user
+    key(user?.id) {
+        BeezyNavHost(
+            appContainer = appContainer,
+            userId = user?.id ?: "",
+            startSignedIn = user != null,
+            isDarkTheme = isDarkTheme,
+            onToggleTheme = onToggleTheme,
+            modifier = modifier
+        )
+    }
+}
+
+@Composable
+private fun BeezyNavHost(
+    appContainer: AppContainer,
+    userId: String,
+    startSignedIn: Boolean,
     isDarkTheme: Boolean,
     onToggleTheme: () -> Unit,
     modifier: Modifier = Modifier,
@@ -62,8 +109,9 @@ fun BeezyNavGraph(
     val currentRoute = navBackStackEntry?.destination?.route
 
     // Create persistent ViewModels from AppContainer
-    val decksViewModel = remember {
+    val decksViewModel = remember(userId) {
         DecksViewModel(
+            userId = userId,
             deckRepository = appContainer.deckRepository,
             cardRepository = appContainer.cardRepository,
             extractCardsUseCase = appContainer.extractCardsFromDocumentUseCase
@@ -77,8 +125,9 @@ fun BeezyNavGraph(
         )
     }
 
-    val aboutViewModel = remember {
+    val aboutViewModel = remember(userId) {
         AboutViewModel(
+            userId = userId,
             preferencesRepository = appContainer.preferencesRepository,
             deckRepository = appContainer.deckRepository,
             authRepository = appContainer.authRepository
@@ -147,22 +196,6 @@ fun BeezyNavGraph(
                                     )
                                 }
                             }
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .clip(PillShape)
-                                    .background(BeezyTheme.colors.accent.copy(alpha = 0.15f))
-                                    .clickable { navController.navigate(Screen.Auth.route) }
-                                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "Sign In",
-                                    color = BeezyTheme.colors.accent,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
                         }
                     }
                 )
@@ -199,7 +232,7 @@ fun BeezyNavGraph(
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Decks.route,
+            startDestination = if (startSignedIn) Screen.Decks.route else Screen.Auth.route,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
@@ -208,8 +241,7 @@ fun BeezyNavGraph(
             composable(Screen.Auth.route) {
                 AuthScreen(
                     viewModel = authViewModel,
-                    onAuthSuccess = { navController.popBackStack() },
-                    onContinueAsGuest = { navController.popBackStack() }
+                    onAuthSuccess = { }
                 )
             }
 
@@ -229,13 +261,20 @@ fun BeezyNavGraph(
                 arguments = listOf(navArgument("deckId") { type = NavType.StringType })
             ) { backStackEntry ->
                 val deckId = backStackEntry.arguments?.getString("deckId") ?: ""
-                val studyViewModel = remember(deckId) {
-                    DeckStudyViewModel(
-                        deckId = deckId,
-                        deckRepository = appContainer.deckRepository,
-                        cardRepository = appContainer.cardRepository
-                    )
-                }
+                val studyViewModel: DeckStudyViewModel = viewModel(
+                    viewModelStoreOwner = backStackEntry,
+                    key = "study-$deckId",
+                    factory = viewModelFactory {
+                        initializer {
+                            DeckStudyViewModel(
+                                deckId = deckId,
+                                userId = userId,
+                                deckRepository = appContainer.deckRepository,
+                                cardRepository = appContainer.cardRepository
+                            )
+                        }
+                    }
+                )
 
                 DeckStudyScreen(
                     viewModel = studyViewModel,
@@ -254,15 +293,22 @@ fun BeezyNavGraph(
                 arguments = listOf(navArgument("deckId") { type = NavType.StringType })
             ) { backStackEntry ->
                 val deckId = backStackEntry.arguments?.getString("deckId") ?: ""
-                val flashcardViewModel = remember(deckId) {
-                    FlashcardViewModel(
-                        deckId = deckId,
-                        deckRepository = appContainer.deckRepository,
-                        cardRepository = appContainer.cardRepository,
-                        calculateSM2UseCase = appContainer.calculateSM2UseCase,
-                        calculateMaturityUseCase = appContainer.calculateMaturityUseCase
-                    )
-                }
+                val flashcardViewModel: FlashcardViewModel = viewModel(
+                    viewModelStoreOwner = backStackEntry,
+                    key = "flashcard-$deckId",
+                    factory = viewModelFactory {
+                        initializer {
+                            FlashcardViewModel(
+                                deckId = deckId,
+                                userId = userId,
+                                deckRepository = appContainer.deckRepository,
+                                cardRepository = appContainer.cardRepository,
+                                calculateSM2UseCase = appContainer.calculateSM2UseCase,
+                                calculateMaturityUseCase = appContainer.calculateMaturityUseCase
+                            )
+                        }
+                    }
+                )
 
                 FlashcardScreen(
                     viewModel = flashcardViewModel,
@@ -276,14 +322,21 @@ fun BeezyNavGraph(
                 arguments = listOf(navArgument("deckId") { type = NavType.StringType })
             ) { backStackEntry ->
                 val deckId = backStackEntry.arguments?.getString("deckId") ?: ""
-                val quizViewModel = remember(deckId) {
-                    QuizViewModel(
-                        deckId = deckId,
-                        deckRepository = appContainer.deckRepository,
-                        cardRepository = appContainer.cardRepository,
-                        generateQuizUseCase = appContainer.generateQuizUseCase
-                    )
-                }
+                val quizViewModel: QuizViewModel = viewModel(
+                    viewModelStoreOwner = backStackEntry,
+                    key = "quiz-$deckId",
+                    factory = viewModelFactory {
+                        initializer {
+                            QuizViewModel(
+                                deckId = deckId,
+                                userId = userId,
+                                deckRepository = appContainer.deckRepository,
+                                cardRepository = appContainer.cardRepository,
+                                generateQuizUseCase = appContainer.generateQuizUseCase
+                            )
+                        }
+                    }
+                )
 
                 QuizScreen(
                     viewModel = quizViewModel,
@@ -300,7 +353,6 @@ fun BeezyNavGraph(
             composable(Screen.About.route) {
                 AboutScreen(
                     viewModel = aboutViewModel,
-                    onNavigateToAuth = { navController.navigate(Screen.Auth.route) },
                     onNavigateToPrivacy = { navController.navigate(Screen.PrivacyPolicy.route) },
                     onNavigateToTerms = { navController.navigate(Screen.TermsOfService.route) }
                 )

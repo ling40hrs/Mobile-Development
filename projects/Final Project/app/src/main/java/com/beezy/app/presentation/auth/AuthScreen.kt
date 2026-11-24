@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
@@ -34,6 +35,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -55,7 +58,6 @@ import com.beezy.app.presentation.theme.neumorphic
 fun AuthScreen(
     viewModel: AuthViewModel,
     onAuthSuccess: () -> Unit,
-    onContinueAsGuest: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -262,7 +264,16 @@ fun AuthScreen(
                     BeezyTextField(
                         value = state.password,
                         onValueChange = { viewModel.onPasswordChanged(it) },
-                        placeholder = if (state.isLoginMode) "Enter password" else "Min 6 characters",
+                        placeholder = if (state.isLoginMode) "Enter password" else "Min 8 characters",
+                        visualTransformation = if (showPassword) {
+                            VisualTransformation.None
+                        } else {
+                            PasswordVisualTransformation()
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done
+                        ),
                         trailingIcon = {
                             Icon(
                                 imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
@@ -333,16 +344,12 @@ fun AuthScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Continue as Guest Option
+            // Privacy note
             Text(
-                text = "Continue as Guest →",
+                text = "Accounts and decks stay on this device.",
                 color = colors.textSecondary,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier
-                    .clip(PillShape)
-                    .clickable { onContinueAsGuest() }
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                fontSize = 12.sp,
+                textAlign = TextAlign.Center
             )
         }
     }

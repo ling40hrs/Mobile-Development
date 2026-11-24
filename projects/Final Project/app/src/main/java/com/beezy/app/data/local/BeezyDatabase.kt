@@ -12,6 +12,7 @@ import com.beezy.app.data.local.entity.CardEntity
 import com.beezy.app.data.local.entity.DeckEntity
 import com.beezy.app.data.local.entity.DeckWithCards
 import com.beezy.app.data.local.entity.UserEntity
+import com.beezy.app.data.local.security.PasswordHasher
 import com.beezy.app.data.local.seed.InitialDataSeeder
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -44,6 +45,7 @@ class BeezyDatabase(
             """
             CREATE TABLE decks (
                 id TEXT PRIMARY KEY NOT NULL,
+                userId TEXT NOT NULL,
                 title TEXT NOT NULL,
                 description TEXT NOT NULL,
                 tags TEXT NOT NULL,
@@ -73,6 +75,7 @@ class BeezyDatabase(
         )
 
         db.execSQL("CREATE INDEX idx_cards_deckId ON cards (deckId);")
+        db.execSQL("CREATE INDEX idx_decks_userId ON decks (userId);")
 
         // Users table for local account management (Login / Signup)
         db.execSQL(
@@ -92,7 +95,7 @@ class BeezyDatabase(
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);")
 
         // Prepopulate with default decks and demo student account
-        seedInitialData(db)
+        seedInitialData(db, DEMO_USER_ID)
         seedDemoUser(db)
     }
 
@@ -115,14 +118,18 @@ class BeezyDatabase(
             db.execSQL("CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);")
             seedDemoUser(db)
         }
+        if (oldVersion < 3) {
+            db.execSQL("ALTER TABLE decks ADD COLUMN userId TEXT NOT NULL DEFAULT '$DEMO_USER_ID'")
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_decks_userId ON decks (userId)")
+        }
     }
 
     private fun seedDemoUser(db: SQLiteDatabase) {
         val values = ContentValues().apply {
-            put("id", "user-demo")
+            put("id", DEMO_USER_ID)
             put("username", "demo")
             put("email", "demo@beezy.app")
-            put("passwordHash", hashPassword("password123"))
+            put("passwordHash", PasswordHasher.hash("password123"))
             put("displayName", "Beezy Student")
             put("avatarIndex", 1) // Wise Owl 🦉
             put("createdAt", System.currentTimeMillis())
@@ -130,11 +137,12 @@ class BeezyDatabase(
         db.insertWithOnConflict("users", null, values, SQLiteDatabase.CONFLICT_IGNORE)
     }
 
-    private fun seedInitialData(db: SQLiteDatabase) {
-        val initialData = InitialDataSeeder.getInitialDecks()
+    private fun seedInitialData(db: SQLiteDatabase, userId: String) {
+        val initialData = InitialDataSeeder.getInitialDecks(userId)
         for (item in initialData) {
             val deckValues = ContentValues().apply {
                 put("id", item.deck.id)
+                put("userId", item.deck.userId)
                 put("title", item.deck.title)
                 put("description", item.deck.description)
                 put("tags", item.deck.tags.joinToString(","))
@@ -168,7 +176,7 @@ class BeezyDatabase(
         val list = mutableListOf<DeckWithCards>()
         
         val deckCursor = db.rawQuery(
-            "SELECT id, title, description, tags, builtIn, starred, createdAt FROM decks ORDER BY createdAt DESC",
+            "SELECT id, userId, title, description, tags, builtIn, starred, createdAt FROM decks ORDER BY createdAt DESC",
             null
         )
         deckCursor.use { cursor ->
@@ -176,12 +184,13 @@ class BeezyDatabase(
                 val deckId = cursor.getString(0)
                 val deck = DeckEntity(
                     id = deckId,
-                    title = cursor.getString(1),
-                    description = cursor.getString(2),
-                    tags = cursor.getString(3).split(",").map { it.trim() }.filter { it.isNotEmpty() },
-                    builtIn = cursor.getInt(4) == 1,
-                    starred = cursor.getInt(5) == 1,
-                    createdAt = cursor.getLong(6)
+                    userId = cursor.getString(1),
+                    title = cursor.getString(2),
+                    description = cursor.getString(3),
+                    tags = cursor.getString(4).split(",").map { it.trim() }.filter { it.isNotEmpty() },
+                    builtIn = cursor.getInt(5) == 1,
+                    starred = cursor.getInt(6) == 1,
+                    createdAt = cursor.getLong(7)
                 )
 
                 // Fetch cards for this deck
@@ -223,13 +232,39 @@ class BeezyDatabase(
         return cards
     }
 
-    suspend fun resetDatabase() = withContext(ioDispatcher) {
+    suspend fun resetDatabase(userId: String) = withContext(ioDispatcher) {
         val db = writableDatabase
         db.beginTransaction()
         try {
-            db.delete("cards", null, null)
-            db.delete("decks", null, null)
-            seedInitialData(db)
+            db.delete("cards", "deckId IN (SELECT id FROM decks WHERE userId = ?)", arrayOf(userId))
+            db.delete("decks", "userId = ?", arrayOf(userId))
+            seedInitialData(db, userId)
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        refreshDecksSync()
+    }
+
+    suspend fun seedStarterDecks(userId: String) = withContext(ioDispatcher) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            seedInitialData(db, userId)
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        refreshDecksSync()
+    }
+
+    suspend fun purgeUserData(userId: String) = withContext(ioDispatcher) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            db.delete("cards", "deckId IN (SELECT id FROM decks WHERE userId = ?)", arrayOf(userId))
+            db.delete("decks", "userId = ?", arrayOf(userId))
+            db.delete("users", "id = ?", arrayOf(userId))
             db.setTransactionSuccessful()
         } finally {
             db.endTransaction()
@@ -245,19 +280,20 @@ class BeezyDatabase(
         override suspend fun getDeckById(id: String): DeckWithCards? = withContext(ioDispatcher) {
             val db = readableDatabase
             val cursor = db.rawQuery(
-                "SELECT id, title, description, tags, builtIn, starred, createdAt FROM decks WHERE id = ?",
+                "SELECT id, userId, title, description, tags, builtIn, starred, createdAt FROM decks WHERE id = ?",
                 arrayOf(id)
             )
             cursor.use { c ->
                 if (c.moveToNext()) {
                     val deck = DeckEntity(
                         id = c.getString(0),
-                        title = c.getString(1),
-                        description = c.getString(2),
-                        tags = c.getString(3).split(",").map { it.trim() }.filter { it.isNotEmpty() },
-                        builtIn = c.getInt(4) == 1,
-                        starred = c.getInt(5) == 1,
-                        createdAt = c.getLong(6)
+                        userId = c.getString(1),
+                        title = c.getString(2),
+                        description = c.getString(3),
+                        tags = c.getString(4).split(",").map { it.trim() }.filter { it.isNotEmpty() },
+                        builtIn = c.getInt(5) == 1,
+                        starred = c.getInt(6) == 1,
+                        createdAt = c.getLong(7)
                     )
                     val cards = getCardsForDeckSync(id)
                     return@withContext DeckWithCards(deck, cards)
@@ -270,6 +306,7 @@ class BeezyDatabase(
             val db = writableDatabase
             val values = ContentValues().apply {
                 put("id", deck.id)
+                put("userId", deck.userId)
                 put("title", deck.title)
                 put("description", deck.description)
                 put("tags", deck.tags.joinToString(","))
@@ -288,29 +325,29 @@ class BeezyDatabase(
                 put("description", deck.description)
                 put("tags", deck.tags.joinToString(","))
             }
-            db.update("decks", values, "id = ?", arrayOf(deck.id))
+            db.update("decks", values, "id = ? AND userId = ?", arrayOf(deck.id, deck.userId))
             refreshDecksSync()
         }
 
-        override suspend fun toggleStar(id: String, isStarred: Boolean) = withContext(ioDispatcher) {
+        override suspend fun toggleStar(id: String, userId: String, isStarred: Boolean) = withContext(ioDispatcher) {
             val db = writableDatabase
             val values = ContentValues().apply {
                 put("starred", if (isStarred) 1 else 0)
             }
-            db.update("decks", values, "id = ?", arrayOf(id))
+            db.update("decks", values, "id = ? AND userId = ?", arrayOf(id, userId))
             refreshDecksSync()
         }
 
-        override suspend fun deleteDeck(id: String) = withContext(ioDispatcher) {
+        override suspend fun deleteDeck(id: String, userId: String) = withContext(ioDispatcher) {
             val db = writableDatabase
-            db.delete("decks", "id = ?", arrayOf(id))
+            db.delete("decks", "id = ? AND userId = ?", arrayOf(id, userId))
             refreshDecksSync()
         }
 
-        override suspend fun deleteAll() = withContext(ioDispatcher) {
+        override suspend fun deleteAll(userId: String) = withContext(ioDispatcher) {
             val db = writableDatabase
-            db.delete("cards", null, null)
-            db.delete("decks", null, null)
+            db.delete("cards", "deckId IN (SELECT id FROM decks WHERE userId = ?)", arrayOf(userId))
+            db.delete("decks", "userId = ?", arrayOf(userId))
             refreshDecksSync()
         }
     }
@@ -449,12 +486,17 @@ class BeezyDatabase(
             refreshDecksSync()
         }
 
-        override suspend fun getAllCards(): List<CardEntity> = withContext(ioDispatcher) {
+        override suspend fun getAllCards(userId: String): List<CardEntity> = withContext(ioDispatcher) {
             val db = readableDatabase
             val cards = mutableListOf<CardEntity>()
             val cursor = db.rawQuery(
-                "SELECT id, deckId, question, answer, tag, reps, interval, easeFactor, dueDate, lastReviewed FROM cards",
-                null
+                """
+                SELECT cards.id, cards.deckId, cards.question, cards.answer, cards.tag, cards.reps,
+                       cards.interval, cards.easeFactor, cards.dueDate, cards.lastReviewed
+                FROM cards INNER JOIN decks ON cards.deckId = decks.id
+                WHERE decks.userId = ?
+                """.trimIndent(),
+                arrayOf(userId)
             )
             cursor.use { c ->
                 while (c.moveToNext()) {
@@ -547,6 +589,14 @@ class BeezyDatabase(
             db.update("users", values, "id = ?", arrayOf(id))
         }
 
+        override suspend fun updatePasswordHash(id: String, passwordHash: String): Int = withContext(ioDispatcher) {
+            val db = writableDatabase
+            val values = ContentValues().apply {
+                put("passwordHash", passwordHash)
+            }
+            db.update("users", values, "id = ?", arrayOf(id))
+        }
+
         override suspend fun deleteUser(id: String): Int = withContext(ioDispatcher) {
             val db = writableDatabase
             db.delete("users", "id = ?", arrayOf(id))
@@ -580,12 +630,7 @@ class BeezyDatabase(
 
     companion object {
         const val DATABASE_NAME = "beezy.db"
-        const val DATABASE_VERSION = 2
-
-        fun hashPassword(password: String): String {
-            val digest = java.security.MessageDigest.getInstance("SHA-256")
-            val bytes = digest.digest(password.toByteArray(Charsets.UTF_8))
-            return bytes.joinToString("") { "%02x".format(it) }
-        }
+        const val DATABASE_VERSION = 3
+        const val DEMO_USER_ID = "user-demo"
     }
 }

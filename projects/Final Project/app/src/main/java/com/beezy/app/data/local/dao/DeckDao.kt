@@ -9,7 +9,7 @@ interface DeckDao {
     suspend fun getDeckById(id: String): DeckWithCards?
     suspend fun insertDeck(deck: DeckEntity)
     suspend fun updateDeck(deck: DeckEntity)
-    suspend fun toggleStar(id: String, isStarred: Boolean)
-    suspend fun deleteDeck(id: String)
-    suspend fun deleteAll()
+    suspend fun toggleStar(id: String, userId: String, isStarred: Boolean)
+    suspend fun deleteDeck(id: String, userId: String)
+    suspend fun deleteAll(userId: String)
 }

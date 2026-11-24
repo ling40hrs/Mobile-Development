@@ -20,7 +20,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
-import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.HorizontalDivider
@@ -39,8 +38,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beezy.app.data.local.datastore.ThemeMode
 import com.beezy.app.presentation.about.dialogs.DangerZoneResetDialog
+import com.beezy.app.presentation.about.dialogs.DeleteAccountDialog
 import com.beezy.app.presentation.about.dialogs.EditProfileDialog
-import com.beezy.app.presentation.about.dialogs.FeedbackDialog
 import com.beezy.app.presentation.about.dialogs.HelpCenterDialog
 import com.beezy.app.presentation.components.BeezyButton
 import com.beezy.app.presentation.components.BeezySecondaryButton
@@ -55,7 +54,6 @@ import com.beezy.app.presentation.theme.neumorphic
 @Composable
 fun AboutScreen(
     viewModel: AboutViewModel,
-    onNavigateToAuth: () -> Unit,
     onNavigateToPrivacy: () -> Unit,
     onNavigateToTerms: () -> Unit,
     modifier: Modifier = Modifier
@@ -177,30 +175,6 @@ fun AboutScreen(
                                 modifier = Modifier.weight(1f)
                             )
                         }
-                    }
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "Guest Mode",
-                                color = colors.textPrimary,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Not connected to a user record",
-                                color = colors.textSecondary,
-                                fontSize = 12.sp
-                            )
-                        }
-                        BeezyButton(
-                            text = "Login / Sign Up",
-                            onClick = onNavigateToAuth
-                        )
                     }
                 }
             }
@@ -346,12 +320,6 @@ fun AboutScreen(
                     )
                     HorizontalDivider(color = colors.border, thickness = 0.5.dp)
                     SettingsRow(
-                        title = "Send Feedback",
-                        icon = Icons.Default.Feedback,
-                        onClick = { viewModel.setFeedbackDialogOpen(true) }
-                    )
-                    HorizontalDivider(color = colors.border, thickness = 0.5.dp)
-                    SettingsRow(
                         title = "Privacy Policy",
                         icon = Icons.Default.Policy,
                         onClick = onNavigateToPrivacy
@@ -404,6 +372,29 @@ fun AboutScreen(
                         backgroundColor = GradeAgainColor,
                         onClick = { viewModel.setResetDialogOpen(true) }
                     )
+
+                    Spacer(modifier = Modifier.height(18.dp))
+                    HorizontalDivider(color = colors.border, thickness = 0.5.dp)
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    Text(
+                        text = "Delete This Account",
+                        color = colors.textPrimary,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Removes the signed-in account, its decks, and its review history from this device.",
+                        color = colors.textSecondary,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                    BeezySecondaryButton(
+                        text = "Delete Account",
+                        onClick = { viewModel.setDeleteAccountDialogOpen(true) }
+                    )
                 }
             }
 
@@ -419,16 +410,15 @@ fun AboutScreen(
         )
     }
 
-    if (state.isHelpDialogOpen) {
-        HelpCenterDialog(onDismiss = { viewModel.setHelpDialogOpen(false) })
+    if (state.isDeleteAccountDialogOpen) {
+        DeleteAccountDialog(
+            onDismiss = { viewModel.setDeleteAccountDialogOpen(false) },
+            onConfirmDelete = { viewModel.deleteAccount() }
+        )
     }
 
-    if (state.isFeedbackDialogOpen) {
-        FeedbackDialog(
-            onDismiss = { viewModel.setFeedbackDialogOpen(false) },
-            onSend = { email, msg -> viewModel.sendFeedback(email, msg) },
-            feedbackSent = state.feedbackSent
-        )
+    if (state.isHelpDialogOpen) {
+        HelpCenterDialog(onDismiss = { viewModel.setHelpDialogOpen(false) })
     }
 
     if (state.isEditProfileDialogOpen && state.currentUser != null) {

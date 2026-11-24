@@ -28,12 +28,17 @@ import androidx.compose.material.icons.filled.Quiz
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +50,7 @@ import androidx.compose.ui.unit.sp
 import com.beezy.app.presentation.components.BeezyButton
 import com.beezy.app.presentation.components.BeezyTextField
 import com.beezy.app.presentation.components.EmptyStateView
+import com.beezy.app.presentation.components.ErrorBanner
 import com.beezy.app.presentation.components.TagChip
 import com.beezy.app.presentation.study.components.AddEditCardDialog
 import com.beezy.app.presentation.study.components.CardListItem
@@ -52,6 +58,7 @@ import com.beezy.app.presentation.theme.BeezyAccent
 import com.beezy.app.presentation.theme.BeezyTheme
 import com.beezy.app.presentation.theme.ButtonShape
 import com.beezy.app.presentation.theme.CardShape
+import com.beezy.app.presentation.theme.GradeAgainColor
 import com.beezy.app.presentation.theme.PillShape
 import com.beezy.app.presentation.theme.neumorphic
 
@@ -66,6 +73,7 @@ fun DeckStudyScreen(
     val state by viewModel.uiState.collectAsState()
     val colors = BeezyTheme.colors
     val deck = state.deck
+    var cardToDelete by remember { mutableStateOf<com.beezy.app.domain.model.Card?>(null) }
 
     if (state.isLoading || deck == null) {
         Box(
@@ -164,6 +172,16 @@ fun DeckStudyScreen(
                         strokeCap = StrokeCap.Round
                     )
                 }
+            }
+        }
+
+        // Write failure banner
+        state.errorMessage?.let { message ->
+            item {
+                ErrorBanner(
+                    message = message,
+                    onDismiss = { viewModel.clearError() }
+                )
             }
         }
 
@@ -345,7 +363,7 @@ fun DeckStudyScreen(
                 CardListItem(
                     card = card,
                     onEdit = { viewModel.openEditCardDialog(card) },
-                    onDelete = { viewModel.deleteCard(card.id) }
+                    onDelete = { cardToDelete = card }
                 )
             }
         }
@@ -359,6 +377,42 @@ fun DeckStudyScreen(
             onSave = { q, a, tag ->
                 viewModel.saveCard(q, a, tag)
             }
+        )
+    }
+
+    // Delete confirmation
+    cardToDelete?.let { card ->
+        AlertDialog(
+            onDismissRequest = { cardToDelete = null },
+            title = {
+                Text(
+                    text = "Delete Card?",
+                    color = colors.textPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "\"${card.question}\" and its review progress will be removed. This cannot be undone.",
+                    color = colors.textSecondary
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteCard(card.id)
+                        cardToDelete = null
+                    }
+                ) {
+                    Text(text = "Delete", color = GradeAgainColor, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { cardToDelete = null }) {
+                    Text(text = "Cancel", color = colors.textSecondary)
+                }
+            },
+            containerColor = colors.surface
         )
     }
 }

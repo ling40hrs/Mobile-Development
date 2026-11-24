@@ -20,5 +20,5 @@ interface CardDao {
     )
     suspend fun deleteCard(id: String)
     suspend fun resetDeckProgress(deckId: String)
-    suspend fun getAllCards(): List<CardEntity>
+    suspend fun getAllCards(userId: String): List<CardEntity>
 }

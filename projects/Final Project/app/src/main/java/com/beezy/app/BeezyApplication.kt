@@ -29,23 +29,12 @@ class BeezyApplication : Application() {
                 setShowBadge(false)
             }
 
-            val reviewChannel = NotificationChannel(
-                CHANNEL_REVIEWS,
-                getString(R.string.notification_channel_reviews),
-                NotificationManager.IMPORTANCE_DEFAULT
-            ).apply {
-                description = getString(R.string.notification_channel_reviews_desc)
-                setShowBadge(true)
-            }
-
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager?.createNotificationChannel(pomodoroChannel)
-            notificationManager?.createNotificationChannel(reviewChannel)
         }
     }
 
     companion object {
         const val CHANNEL_POMODORO = "beezy_pomodoro_channel"
-        const val CHANNEL_REVIEWS = "beezy_reviews_channel"
     }
 }

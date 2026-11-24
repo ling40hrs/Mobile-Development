@@ -11,7 +11,8 @@ data class FlashcardUiState(
     val cardsReviewedThisSession: Int = 0,
     val isSessionComplete: Boolean = false,
     val isShuffled: Boolean = false,
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val errorMessage: String? = null
 ) {
     val currentCard: Card? get() = cards.getOrNull(currentIndex)
     val totalCards: Int get() = cards.size

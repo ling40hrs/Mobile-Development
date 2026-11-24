@@ -26,19 +26,59 @@ class PomodoroViewModel(
     init {
         viewModelScope.launch {
             preferencesRepository.userPreferencesFlow.collect { prefs ->
-                if (!_uiState.value.isRunning) {
-                    val defaultDuration = when (_uiState.value.currentMode) {
-                        PomodoroMode.FOCUS -> prefs.pomodoroFocusMinutes * 60
-                        PomodoroMode.SHORT_BREAK -> prefs.pomodoroShortBreakMinutes * 60
-                        PomodoroMode.LONG_BREAK -> prefs.pomodoroLongBreakMinutes * 60
+                _uiState.update { current ->
+                    val updated = current.copy(
+                        focusMinutes = prefs.pomodoroFocusMinutes,
+                        shortBreakMinutes = prefs.pomodoroShortBreakMinutes,
+                        longBreakMinutes = prefs.pomodoroLongBreakMinutes,
+                        targetCycles = prefs.pomodoroCycles
+                    )
+                    if (updated.isRunning) {
+                        updated
+                    } else {
+                        val seconds = durationSeconds(updated, updated.currentMode)
+                        updated.copy(totalSeconds = seconds, remainingSeconds = seconds)
                     }
-                    _uiState.update {
-                        it.copy(
-                            totalSeconds = defaultDuration,
-                            remainingSeconds = defaultDuration,
-                            targetCycles = prefs.pomodoroCycles
-                        )
-                    }
+                }
+            }
+        }
+    }
+
+    private fun durationSeconds(state: PomodoroUiState, mode: PomodoroMode): Int = when (mode) {
+        PomodoroMode.FOCUS -> state.focusMinutes
+        PomodoroMode.SHORT_BREAK -> state.shortBreakMinutes
+        PomodoroMode.LONG_BREAK -> state.longBreakMinutes
+    } * 60
+
+    fun setSettingsDialogOpen(open: Boolean) {
+        _uiState.update { it.copy(isSettingsDialogOpen = open) }
+    }
+
+    fun saveDurations(focusMinutes: Int, shortBreakMinutes: Int, longBreakMinutes: Int) {
+        val focus = focusMinutes.coerceIn(PomodoroLimits.FOCUS_MIN, PomodoroLimits.FOCUS_MAX)
+        val shortBreak = shortBreakMinutes.coerceIn(
+            PomodoroLimits.SHORT_BREAK_MIN,
+            PomodoroLimits.SHORT_BREAK_MAX
+        )
+        val longBreak = longBreakMinutes.coerceIn(
+            PomodoroLimits.LONG_BREAK_MIN,
+            PomodoroLimits.LONG_BREAK_MAX
+        )
+
+        viewModelScope.launch {
+            preferencesRepository.setPomodoroDurations(focus, shortBreak, longBreak)
+            _uiState.update { current ->
+                val updated = current.copy(
+                    focusMinutes = focus,
+                    shortBreakMinutes = shortBreak,
+                    longBreakMinutes = longBreak,
+                    isSettingsDialogOpen = false
+                )
+                if (updated.isRunning) {
+                    updated
+                } else {
+                    val seconds = durationSeconds(updated, updated.currentMode)
+                    updated.copy(totalSeconds = seconds, remainingSeconds = seconds)
                 }
             }
         }
@@ -46,7 +86,7 @@ class PomodoroViewModel(
 
     fun switchMode(mode: PomodoroMode) {
         pauseTimer()
-        val duration = mode.defaultMinutes * 60
+        val duration = durationSeconds(_uiState.value, mode)
         _uiState.update {
             it.copy(
                 currentMode = mode,
@@ -103,7 +143,7 @@ class PomodoroViewModel(
 
     fun resetTimer() {
         pauseTimer()
-        val defaultDuration = _uiState.value.currentMode.defaultMinutes * 60
+        val defaultDuration = durationSeconds(_uiState.value, _uiState.value.currentMode)
         _uiState.update {
             it.copy(
                 totalSeconds = defaultDuration,

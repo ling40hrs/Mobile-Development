@@ -29,6 +29,4 @@
     <!-- Notifications -->
     <string name="notification_channel_pomodoro">Pomodoro Timer</string>
     <string name="notification_channel_pomodoro_desc">Notifications for ongoing focus sessions and breaks</string>
-    <string name="notification_channel_reviews">Study Reminders</string>
-    <string name="notification_channel_reviews_desc">Daily reminders for cards due for review</string>
 </resources>

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -14,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beezy.app.presentation.theme.BeezyTheme
@@ -29,7 +31,9 @@ fun BeezyTextField(
     minLines: Int = 1,
     maxLines: Int = if (singleLine) 1 else 6,
     leadingIcon: (@Composable () -> Unit)? = null,
-    trailingIcon: (@Composable () -> Unit)? = null
+    trailingIcon: (@Composable () -> Unit)? = null,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default
 ) {
     val colors = BeezyTheme.colors
 
@@ -70,6 +74,8 @@ fun BeezyTextField(
                         fontSize = 14.sp
                     ),
                     cursorBrush = SolidColor(colors.accent),
+                    visualTransformation = visualTransformation,
+                    keyboardOptions = keyboardOptions,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

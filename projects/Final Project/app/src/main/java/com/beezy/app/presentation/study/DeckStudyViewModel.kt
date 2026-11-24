@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.beezy.app.domain.model.Card
 import com.beezy.app.domain.repository.CardRepository
 import com.beezy.app.domain.repository.DeckRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,6 +14,7 @@ import kotlinx.coroutines.launch
 
 class DeckStudyViewModel(
     private val deckId: String,
+    private val userId: String,
     private val deckRepository: DeckRepository,
     private val cardRepository: CardRepository
 ) : ViewModel() {
@@ -26,10 +28,10 @@ class DeckStudyViewModel(
 
     private fun loadDeckAndCards() {
         viewModelScope.launch {
-            val deck = deckRepository.getDeckById(deckId)
+            val deck = deckRepository.getDeckById(deckId, userId)
             _uiState.update { it.copy(deck = deck) }
 
-            cardRepository.getCardsForDeckStream(deckId).collect { cards ->
+            cardRepository.getCardsForDeckStream(deckId, userId).collect { cards ->
                 _uiState.update { current ->
                     val filtered = applyFilters(cards, current.searchQuery, current.selectedCardTag)
                     val updatedDeck = current.deck?.copy(totalCards = cards.size)
@@ -71,21 +73,37 @@ class DeckStudyViewModel(
         _uiState.update { it.copy(isAddEditCardDialogOpen = false, editingCard = null) }
     }
 
+    fun clearError() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
+
     fun saveCard(question: String, answer: String, tag: String?) {
         val editing = _uiState.value.editingCard
         viewModelScope.launch {
-            if (editing == null) {
-                cardRepository.addCard(deckId, question, answer, tag)
-            } else {
-                cardRepository.updateCard(editing.id, question, answer, tag)
+            try {
+                if (editing == null) {
+                    cardRepository.addCard(deckId, question, answer, tag)
+                } else {
+                    cardRepository.updateCard(editing.id, question, answer, tag)
+                }
+                closeAddEditCardDialog()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Could not save the card. Please try again.") }
             }
-            closeAddEditCardDialog()
         }
     }
 
     fun deleteCard(cardId: String) {
         viewModelScope.launch {
-            cardRepository.deleteCard(cardId)
+            try {
+                cardRepository.deleteCard(cardId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Could not delete the card. Please try again.") }
+            }
         }
     }
 

@@ -87,11 +87,25 @@ class AuthViewModel(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = error.localizedMessage ?: "Authentication failed"
+                            errorMessage = error.toUserMessage()
                         )
                     }
                 }
             )
         }
+    }
+
+    /**
+     * Only show messages that the repository wrote for the user. Anything else
+     * (SQL failures, I/O) becomes a generic line so internals never surface.
+     */
+    private fun Throwable.toUserMessage(): String = when (this) {
+        is IllegalArgumentException,
+        is IllegalStateException -> message ?: GENERIC_ERROR
+        else -> GENERIC_ERROR
+    }
+
+    private companion object {
+        const val GENERIC_ERROR = "Something went wrong. Please try again."
     }
 }

@@ -7,6 +7,7 @@ import com.beezy.app.domain.repository.CardRepository
 import com.beezy.app.domain.repository.DeckRepository
 import com.beezy.app.domain.usecase.CalculateMaturityUseCase
 import com.beezy.app.domain.usecase.CalculateSM2UseCase
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,6 +16,7 @@ import kotlinx.coroutines.launch
 
 class FlashcardViewModel(
     private val deckId: String,
+    private val userId: String,
     private val deckRepository: DeckRepository,
     private val cardRepository: CardRepository,
     private val calculateSM2UseCase: CalculateSM2UseCase,
@@ -30,8 +32,8 @@ class FlashcardViewModel(
 
     private fun loadSession() {
         viewModelScope.launch {
-            val deck = deckRepository.getDeckById(deckId)
-            val cards = cardRepository.getCardsForDeck(deckId)
+            val deck = deckRepository.getDeckById(deckId, userId)
+            val cards = cardRepository.getCardsForDeck(deckId, userId)
             _uiState.update {
                 it.copy(
                     deck = deck,
@@ -48,6 +50,10 @@ class FlashcardViewModel(
         _uiState.update { it.copy(isFlipped = !it.isFlipped) }
     }
 
+    fun clearError() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
+
     fun rateCard(grade: Int) {
         val currentCard = _uiState.value.currentCard ?: return
         viewModelScope.launch {
@@ -58,7 +64,14 @@ class FlashcardViewModel(
                 grade = grade
             )
 
-            cardRepository.updateCardSM2(currentCard.id, sm2Result)
+            try {
+                cardRepository.updateCardSM2(currentCard.id, sm2Result)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Could not save your rating. Please try again.") }
+                return@launch
+            }
 
             val updatedCards = _uiState.value.cards.map { card ->
                 if (card.id == currentCard.id) {
@@ -121,7 +134,7 @@ class FlashcardViewModel(
 
     fun resetDeckReviewProgress() {
         viewModelScope.launch {
-            cardRepository.resetDeckProgress(deckId)
+            cardRepository.resetDeckProgress(deckId, userId)
             loadSession()
         }
     }

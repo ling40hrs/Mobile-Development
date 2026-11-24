@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beezy.app.presentation.components.EmptyStateView
+import com.beezy.app.presentation.components.ErrorBanner
 import com.beezy.app.presentation.components.FlipCardSurface
 import com.beezy.app.presentation.components.TagChip
 import com.beezy.app.presentation.flashcard.components.RatingBar
@@ -98,6 +99,14 @@ fun FlashcardScreen(
         ) {
             // 1. Top Controls Bar: Deck Title, Shuffle, Reset, Exit
             Column {
+                state.errorMessage?.let { message ->
+                    ErrorBanner(
+                        message = message,
+                        onDismiss = { viewModel.clearError() }
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,

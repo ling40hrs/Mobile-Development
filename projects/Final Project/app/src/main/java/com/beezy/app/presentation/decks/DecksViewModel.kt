@@ -6,6 +6,7 @@ import com.beezy.app.domain.model.Deck
 import com.beezy.app.domain.repository.CardRepository
 import com.beezy.app.domain.repository.DeckRepository
 import com.beezy.app.domain.usecase.ExtractCardsFromDocumentUseCase
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class DecksViewModel(
+    private val userId: String,
     private val deckRepository: DeckRepository,
     private val cardRepository: CardRepository,
     private val extractCardsUseCase: ExtractCardsFromDocumentUseCase
@@ -27,7 +29,7 @@ class DecksViewModel(
 
     private fun observeDecks() {
         viewModelScope.launch {
-            deckRepository.getDecksStream().collect { decks ->
+            deckRepository.getDecksStream(userId).collect { decks ->
                 _uiState.update { current ->
                     val allTags = decks.flatMap { it.tags }.distinct().sorted()
                     val filtered = applyFilters(decks, current.searchQuery, current.selectedTag, current.sortOption)
@@ -68,36 +70,77 @@ class DecksViewModel(
         _uiState.update { it.copy(isCreateDialogOpen = open) }
     }
 
+    fun clearError() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
+
     fun toggleStar(deckId: String, currentStarred: Boolean) {
         viewModelScope.launch {
-            deckRepository.toggleStar(deckId, !currentStarred)
+            try {
+                deckRepository.toggleStar(deckId, userId, !currentStarred)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Could not update the deck. Please try again.") }
+            }
         }
     }
 
     fun deleteDeck(deckId: String) {
         viewModelScope.launch {
-            deckRepository.deleteDeck(deckId)
+            try {
+                deckRepository.deleteDeck(deckId, userId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Could not delete the deck. Please try again.") }
+            }
+        }
+    }
+
+    fun updateDeck(id: String, title: String, description: String, tags: List<String>) {
+        if (title.isBlank()) return
+        viewModelScope.launch {
+            try {
+                deckRepository.updateDeck(id, userId, title, description, tags)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Could not save the deck. Please try again.") }
+            }
         }
     }
 
     fun createDeckManual(title: String, description: String, tags: List<String>) {
         if (title.isBlank()) return
         viewModelScope.launch {
-            deckRepository.createDeck(title, description, tags)
-            setCreateDialogOpen(false)
+            try {
+                deckRepository.createDeck(userId, title, description, tags)
+                setCreateDialogOpen(false)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Could not create the deck. Please try again.") }
+            }
         }
     }
 
     fun createDeckFromText(title: String, description: String, tags: List<String>, rawText: String) {
         if (title.isBlank() || rawText.isBlank()) return
         viewModelScope.launch {
-            val deckId = deckRepository.createDeck(title, description, tags)
-            val extracted = extractCardsUseCase(rawText, defaultTag = tags.firstOrNull() ?: "Notes")
-            if (extracted.isNotEmpty()) {
-                val cardPairs = extracted.map { it.question to it.answer }
-                cardRepository.addCards(deckId, cardPairs, tag = tags.firstOrNull() ?: "Notes")
+            try {
+                val deckId = deckRepository.createDeck(userId, title, description, tags)
+                val extracted = extractCardsUseCase(rawText, defaultTag = tags.firstOrNull() ?: "Notes")
+                if (extracted.isNotEmpty()) {
+                    val cardPairs = extracted.map { it.question to it.answer }
+                    cardRepository.addCards(deckId, cardPairs, tag = tags.firstOrNull() ?: "Notes")
+                }
+                setCreateDialogOpen(false)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Could not create the deck. Please try again.") }
             }
-            setCreateDialogOpen(false)
         }
     }
 

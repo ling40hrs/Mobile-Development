@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class AboutViewModel(
+    private val userId: String,
     private val preferencesRepository: UserPreferencesRepository,
     private val deckRepository: DeckRepository,
     private val authRepository: AuthRepository
@@ -76,7 +77,12 @@ class AboutViewModel(
     fun deleteAccount() {
         viewModelScope.launch {
             authRepository.deleteAccount()
+            setDeleteAccountDialogOpen(false)
         }
+    }
+
+    fun setDeleteAccountDialogOpen(open: Boolean) {
+        _uiState.update { it.copy(isDeleteAccountDialogOpen = open) }
     }
 
     fun setResetDialogOpen(open: Boolean) {
@@ -87,17 +93,9 @@ class AboutViewModel(
         _uiState.update { it.copy(isHelpDialogOpen = open) }
     }
 
-    fun setFeedbackDialogOpen(open: Boolean) {
-        _uiState.update { it.copy(isFeedbackDialogOpen = open, feedbackSent = false) }
-    }
-
-    fun sendFeedback(email: String, message: String) {
-        _uiState.update { it.copy(feedbackSent = true) }
-    }
-
     fun resetAllData() {
         viewModelScope.launch {
-            deckRepository.resetAllData()
+            deckRepository.resetAllData(userId)
             setResetDialogOpen(false)
         }
     }

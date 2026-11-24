@@ -14,14 +14,19 @@ class CardRepositoryImpl(
 ) : CardRepository {
 
     private val cardDao = database.cardDao
+    private val deckDao = database.deckDao
 
-    override fun getCardsForDeckStream(deckId: String): Flow<List<Card>> {
-        return cardDao.getCardsForDeckFlow(deckId).map { entities ->
-            entities.map { it.toDomain() }
+    override fun getCardsForDeckStream(deckId: String, userId: String): Flow<List<Card>> {
+        return deckDao.getAllDecksFlow().map { decks ->
+            decks.firstOrNull { it.deck.id == deckId && it.deck.userId == userId }
+                ?.cards
+                ?.map { it.toDomain() }
+                ?: emptyList()
         }
     }
 
-    override suspend fun getCardsForDeck(deckId: String): List<Card> {
+    override suspend fun getCardsForDeck(deckId: String, userId: String): List<Card> {
+        if (!ownsDeck(deckId, userId)) return emptyList()
         return cardDao.getCardsForDeck(deckId).map { it.toDomain() }
     }
 
@@ -88,12 +93,18 @@ class CardRepositoryImpl(
         cardDao.deleteCard(id)
     }
 
-    override suspend fun resetDeckProgress(deckId: String) {
+    override suspend fun resetDeckProgress(deckId: String, userId: String) {
+        if (!ownsDeck(deckId, userId)) return
         cardDao.resetDeckProgress(deckId)
     }
 
-    override suspend fun getAllCards(): List<Card> {
-        return cardDao.getAllCards().map { it.toDomain() }
+    override suspend fun getAllCards(userId: String): List<Card> {
+        return cardDao.getAllCards(userId).map { it.toDomain() }
+    }
+
+    private suspend fun ownsDeck(deckId: String, userId: String): Boolean {
+        val deck = deckDao.getDeckById(deckId) ?: return false
+        return deck.deck.userId == userId
     }
 
     private fun CardEntity.toDomain(): Card {

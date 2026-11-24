@@ -3,11 +3,15 @@ package com.beezy.app.data.repository
 import com.beezy.app.data.local.BeezyDatabase
 import com.beezy.app.data.local.datastore.UserPreferencesRepository
 import com.beezy.app.data.local.entity.UserEntity
+import com.beezy.app.data.local.security.PasswordHasher
 import com.beezy.app.domain.model.User
 import com.beezy.app.domain.repository.AuthRepository
+import com.beezy.app.domain.validation.AuthValidation
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 class AuthRepositoryImpl(
@@ -27,20 +31,24 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun login(usernameOrEmail: String, password: String): Result<User> {
-        val cleanIdentifier = usernameOrEmail.trim().lowercase()
-        if (cleanIdentifier.isBlank()) {
-            return Result.failure(IllegalArgumentException("Username or email cannot be empty"))
+        AuthValidation.loginError(usernameOrEmail, password)?.let {
+            return Result.failure(IllegalArgumentException(it))
         }
-        if (password.isBlank()) {
-            return Result.failure(IllegalArgumentException("Password cannot be empty"))
-        }
+        val cleanIdentifier = AuthValidation.normalizeUsername(usernameOrEmail)
 
         val userEntity = userDao.getUserByUsernameOrEmail(cleanIdentifier)
-            ?: return Result.failure(IllegalArgumentException("Account not found. Please sign up."))
+            ?: return Result.failure(IllegalArgumentException(INVALID_CREDENTIALS))
 
-        val hash = BeezyDatabase.hashPassword(password)
-        if (userEntity.passwordHash != hash) {
-            return Result.failure(IllegalArgumentException("Incorrect password. Please try again."))
+        val isValid = withContext(Dispatchers.Default) {
+            PasswordHasher.verify(password, userEntity.passwordHash)
+        }
+        if (!isValid) {
+            return Result.failure(IllegalArgumentException(INVALID_CREDENTIALS))
+        }
+
+        if (PasswordHasher.needsUpgrade(userEntity.passwordHash)) {
+            val upgraded = withContext(Dispatchers.Default) { PasswordHasher.hash(password) }
+            userDao.updatePasswordHash(userEntity.id, upgraded)
         }
 
         // Set active session in preferences
@@ -57,18 +65,12 @@ class AuthRepositoryImpl(
         displayName: String,
         avatarIndex: Int
     ): Result<User> {
-        val cleanUser = username.trim().lowercase()
-        val cleanEmail = email.trim().lowercase()
+        val cleanUser = AuthValidation.normalizeUsername(username)
+        val cleanEmail = AuthValidation.normalizeEmail(email)
         val cleanName = displayName.trim().ifBlank { cleanUser }
 
-        if (cleanUser.length < 3) {
-            return Result.failure(IllegalArgumentException("Username must be at least 3 characters"))
-        }
-        if (!cleanEmail.contains("@") || !cleanEmail.contains(".")) {
-            return Result.failure(IllegalArgumentException("Please enter a valid email address"))
-        }
-        if (password.length < 6) {
-            return Result.failure(IllegalArgumentException("Password must be at least 6 characters"))
+        AuthValidation.signupError(cleanUser, cleanEmail, password, cleanName)?.let {
+            return Result.failure(IllegalArgumentException(it))
         }
 
         val existing = userDao.getUserByUsernameOrEmail(cleanUser)
@@ -78,11 +80,12 @@ class AuthRepositoryImpl(
         }
 
         val userId = "user-${System.currentTimeMillis()}-${UUID.randomUUID().toString().take(6)}"
+        val passwordHash = withContext(Dispatchers.Default) { PasswordHasher.hash(password) }
         val entity = UserEntity(
             id = userId,
             username = cleanUser,
             email = cleanEmail,
-            passwordHash = BeezyDatabase.hashPassword(password),
+            passwordHash = passwordHash,
             displayName = cleanName,
             avatarIndex = avatarIndex,
             createdAt = System.currentTimeMillis()
@@ -91,14 +94,15 @@ class AuthRepositoryImpl(
         try {
             val rowId = userDao.insertUser(entity)
             if (rowId == -1L) {
-                return Result.failure(IllegalStateException("Database error while creating account"))
+                return Result.failure(IllegalStateException("Could not create the account. Please try again."))
             }
 
+            database.seedStarterDecks(userId)
             preferencesRepository.setCurrentUserId(userId)
             preferencesRepository.setAvatarIndex(avatarIndex)
             return Result.success(entity.toDomain())
-        } catch (e: Exception) {
-            return Result.failure(e)
+        } catch (_: Exception) {
+            return Result.failure(IllegalStateException("Could not create the account. Please try again."))
         }
     }
 
@@ -124,7 +128,7 @@ class AuthRepositoryImpl(
         val currentUser = getCurrentUser()
             ?: return Result.failure(IllegalStateException("No active account to delete"))
 
-        userDao.deleteUser(currentUser.id)
+        database.purgeUserData(currentUser.id)
         preferencesRepository.setCurrentUserId(null)
         return Result.success(Unit)
     }
@@ -142,5 +146,10 @@ class AuthRepositoryImpl(
             avatarIndex = avatarIndex,
             createdAt = createdAt
         )
+    }
+
+    private companion object {
+        // Same message for an unknown account and a wrong password.
+        const val INVALID_CREDENTIALS = "Incorrect username or password."
     }
 }

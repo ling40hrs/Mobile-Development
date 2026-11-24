@@ -29,7 +29,6 @@ data class AboutUiState(
     val selectedAvatarIndex: Int = 0,
     val isEditProfileDialogOpen: Boolean = false,
     val isResetDialogOpen: Boolean = false,
-    val isHelpDialogOpen: Boolean = false,
-    val isFeedbackDialogOpen: Boolean = false,
-    val feedbackSent: Boolean = false
+    val isDeleteAccountDialogOpen: Boolean = false,
+    val isHelpDialogOpen: Boolean = false
 )
