@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.withContext
 
 class BeezyDatabase(
@@ -28,12 +29,15 @@ class BeezyDatabase(
 ) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     private val _decksFlow = MutableStateFlow<List<DeckWithCards>>(emptyList())
-    val decksFlow: Flow<List<DeckWithCards>> = _decksFlow.asStateFlow()
 
-    init {
-        // Initial load of decks
-        refreshDecksSync()
-    }
+    /**
+     * Refreshed when a collector arrives rather than in the constructor: the
+     * first read then happens on the IO dispatcher and a broken database shows
+     * an error in the UI instead of failing app start-up.
+     */
+    val decksFlow: Flow<List<DeckWithCards>> = _decksFlow
+        .asStateFlow()
+        .onStart { withContext(ioDispatcher) { refreshDecksSync() } }
 
     override fun onConfigure(db: SQLiteDatabase) {
         super.onConfigure(db)

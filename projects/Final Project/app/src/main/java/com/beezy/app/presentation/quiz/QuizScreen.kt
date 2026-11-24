@@ -69,8 +69,9 @@ fun QuizScreen(
             contentAlignment = Alignment.Center
         ) {
             EmptyStateView(
-                title = "Not enough cards for quiz",
-                subtitle = "Quiz mode requires at least 1 card with question and answer. Add cards to this deck first.",
+                title = if (state.errorMessage != null) "Could not load this quiz" else "Not enough cards for quiz",
+                subtitle = state.errorMessage
+                    ?: "Quiz mode requires at least 1 card with question and answer. Add cards to this deck first.",
                 actionText = "Back to Deck",
                 onActionClick = onNavigateBack
             )

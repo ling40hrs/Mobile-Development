@@ -9,8 +9,10 @@ import com.beezy.app.domain.repository.AuthRepository
 import com.beezy.app.domain.validation.AuthValidation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
@@ -21,8 +23,23 @@ class AuthRepositoryImpl(
 
     private val userDao = database.userDao
 
-    override val currentUserFlow: Flow<User?> = preferencesRepository.currentUserIdFlow.map { userId ->
-        if (userId == null) null else userDao.getUserById(userId)?.toDomain()
+    /** Bumped after a profile write so observers re-read the row. */
+    private val profileUpdates = MutableStateFlow(0)
+
+    override val currentUserFlow: Flow<User?> =
+        combine(preferencesRepository.currentUserIdFlow, profileUpdates) { userId, _ ->
+            if (userId == null) null else readUserOrNull(userId)
+        }
+
+    /**
+     * A session row that cannot be read falls back to the auth screen instead
+     * of crashing the app at start-up; the stored session id is kept, so a
+     * later launch with a healthy database signs the user back in.
+     */
+    private suspend fun readUserOrNull(userId: String): User? = try {
+        userDao.getUserById(userId)?.toDomain()
+    } catch (e: Exception) {
+        null
     }
 
     override suspend fun getCurrentUser(): User? {
@@ -113,6 +130,7 @@ class AuthRepositoryImpl(
         val cleanName = displayName.trim().ifBlank { currentUser.username }
         userDao.updateUserProfile(currentUser.id, cleanName, avatarIndex)
         preferencesRepository.setAvatarIndex(avatarIndex)
+        profileUpdates.update { it + 1 }
 
         val updated = userDao.getUserById(currentUser.id)?.toDomain()
             ?: return Result.failure(IllegalStateException("Failed to retrieve updated profile"))

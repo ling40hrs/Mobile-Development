@@ -94,7 +94,7 @@ fun DeckItemCard(
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Text(
-                        text = "${deck.totalCards} cards",
+                        text = "${deck.totalCards} ${if (deck.totalCards == 1) "card" else "cards"}",
                         color = colors.textSecondary,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium
@@ -106,14 +106,14 @@ fun DeckItemCard(
                 // Star Toggle
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .clickable { onToggleStar() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = if (deck.starred) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                        contentDescription = "Star",
+                        contentDescription = if (deck.starred) "Remove star" else "Star deck",
                         tint = if (deck.starred) BeezyAccent else colors.textSecondary,
                         modifier = Modifier.size(20.dp)
                     )
@@ -187,7 +187,7 @@ fun DeckItemCard(
                     Spacer(modifier = Modifier.width(12.dp))
                     Box(
                         modifier = Modifier
-                            .size(28.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
                             .clickable { onDelete() },
                         contentAlignment = Alignment.Center
@@ -204,7 +204,7 @@ fun DeckItemCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 Box(
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .clickable { onEdit() },
                     contentAlignment = Alignment.Center

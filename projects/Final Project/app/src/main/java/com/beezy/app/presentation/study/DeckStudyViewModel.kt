@@ -22,24 +22,38 @@ class DeckStudyViewModel(
     private val _uiState = MutableStateFlow(DeckStudyUiState())
     val uiState: StateFlow<DeckStudyUiState> = _uiState.asStateFlow()
 
+    /** Guards a double-tapped Save button so one tap writes one card. */
+    private var isSavingCard = false
+
     init {
         loadDeckAndCards()
     }
 
     private fun loadDeckAndCards() {
         viewModelScope.launch {
-            val deck = deckRepository.getDeckById(deckId, userId)
-            _uiState.update { it.copy(deck = deck) }
+            try {
+                val deck = deckRepository.getDeckById(deckId, userId)
+                _uiState.update { it.copy(deck = deck) }
 
-            cardRepository.getCardsForDeckStream(deckId, userId).collect { cards ->
-                _uiState.update { current ->
-                    val filtered = applyFilters(cards, current.searchQuery, current.selectedCardTag)
-                    val updatedDeck = current.deck?.copy(totalCards = cards.size)
-                    current.copy(
-                        deck = updatedDeck,
-                        cards = cards,
-                        filteredCards = filtered,
-                        isLoading = false
+                cardRepository.getCardsForDeckStream(deckId, userId).collect { cards ->
+                    _uiState.update { current ->
+                        val filtered = applyFilters(cards, current.searchQuery, current.selectedCardTag)
+                        val updatedDeck = current.deck?.copy(totalCards = cards.size)
+                        current.copy(
+                            deck = updatedDeck,
+                            cards = cards,
+                            filteredCards = filtered,
+                            isLoading = false
+                        )
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Could not load this deck. Please try again."
                     )
                 }
             }
@@ -82,7 +96,9 @@ class DeckStudyViewModel(
     }
 
     fun saveCard(question: String, answer: String, tag: String?) {
+        if (isSavingCard) return
         val editing = _uiState.value.editingCard
+        isSavingCard = true
         viewModelScope.launch {
             try {
                 if (editing == null) {
@@ -95,6 +111,8 @@ class DeckStudyViewModel(
                 throw e
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = "Could not save the card. Please try again.") }
+            } finally {
+                isSavingCard = false
             }
         }
     }

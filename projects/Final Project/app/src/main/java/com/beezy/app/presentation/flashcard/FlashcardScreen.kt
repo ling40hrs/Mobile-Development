@@ -20,13 +20,18 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,6 +59,7 @@ fun FlashcardScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val colors = BeezyTheme.colors
+    var showResetConfirm by remember { mutableStateOf(false) }
 
     if (state.isLoading) {
         Box(
@@ -75,8 +81,9 @@ fun FlashcardScreen(
             contentAlignment = Alignment.Center
         ) {
             EmptyStateView(
-                title = "No cards to study",
-                subtitle = "This deck is currently empty. Add cards first to start your review session.",
+                title = if (state.errorMessage != null) "Could not load this deck" else "No cards to study",
+                subtitle = state.errorMessage
+                    ?: "This deck is currently empty. Add cards first to start your review session.",
                 actionText = "Back to Deck",
                 onActionClick = onNavigateBack
             )
@@ -146,7 +153,7 @@ fun FlashcardScreen(
                                 .size(36.dp)
                                 .clip(CircleShape)
                                 .background(colors.surface2)
-                                .clickable { viewModel.resetDeckReviewProgress() },
+                                .clickable { showResetConfirm = true },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -394,6 +401,41 @@ fun FlashcardScreen(
             maturityPercentage = state.deck?.maturityPercentage ?: 0,
             onStudyAgain = { viewModel.restartSession() },
             onFinish = onNavigateBack
+        )
+    }
+
+    if (showResetConfirm) {
+        AlertDialog(
+            onDismissRequest = { showResetConfirm = false },
+            title = {
+                Text(
+                    text = "Reset Progress?",
+                    color = colors.textPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "Review counts, intervals, and due dates for every card in this deck will be cleared. This cannot be undone.",
+                    color = colors.textSecondary
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showResetConfirm = false
+                        viewModel.resetDeckReviewProgress()
+                    }
+                ) {
+                    Text(text = "Reset", color = BeezyAccent, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetConfirm = false }) {
+                    Text(text = "Cancel", color = colors.textSecondary)
+                }
+            },
+            containerColor = colors.surface
         )
     }
 }

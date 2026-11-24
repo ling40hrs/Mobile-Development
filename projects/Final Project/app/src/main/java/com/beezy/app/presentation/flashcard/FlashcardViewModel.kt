@@ -32,16 +32,27 @@ class FlashcardViewModel(
 
     private fun loadSession() {
         viewModelScope.launch {
-            val deck = deckRepository.getDeckById(deckId, userId)
-            val cards = cardRepository.getCardsForDeck(deckId, userId)
-            _uiState.update {
-                it.copy(
-                    deck = deck,
-                    cards = cards,
-                    currentIndex = 0,
-                    isFlipped = false,
-                    isLoading = false
-                )
+            try {
+                val deck = deckRepository.getDeckById(deckId, userId)
+                val cards = cardRepository.getCardsForDeck(deckId, userId)
+                _uiState.update {
+                    it.copy(
+                        deck = deck,
+                        cards = cards,
+                        currentIndex = 0,
+                        isFlipped = false,
+                        isLoading = false
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Could not load this deck. Please try again."
+                    )
+                }
             }
         }
     }
@@ -134,7 +145,16 @@ class FlashcardViewModel(
 
     fun resetDeckReviewProgress() {
         viewModelScope.launch {
-            cardRepository.resetDeckProgress(deckId, userId)
+            try {
+                cardRepository.resetDeckProgress(deckId, userId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(errorMessage = "Could not reset progress. Please try again.")
+                }
+                return@launch
+            }
             loadSession()
         }
     }

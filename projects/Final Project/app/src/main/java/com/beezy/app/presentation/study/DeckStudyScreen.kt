@@ -41,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -154,7 +155,7 @@ fun DeckStudyScreen(
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = "${state.cards.size} Cards",
+                            text = if (state.cards.size == 1) "1 Card" else "${state.cards.size} Cards",
                             color = colors.accent,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
@@ -195,6 +196,7 @@ fun DeckStudyScreen(
                 Box(
                     modifier = Modifier
                         .weight(1f)
+                        .alpha(if (state.cards.isNotEmpty()) 1f else 0.4f)
                         .clip(CardShape)
                         .background(colors.surface)
                         .border(1.dp, colors.border, CardShape)
@@ -226,7 +228,7 @@ fun DeckStudyScreen(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "${state.cards.size} Cards",
+                            text = if (state.cards.size == 1) "1 Card" else "${state.cards.size} Cards",
                             color = colors.textSecondary,
                             fontSize = 12.sp
                         )
@@ -237,6 +239,7 @@ fun DeckStudyScreen(
                 Box(
                     modifier = Modifier
                         .weight(1f)
+                        .alpha(if (state.cards.isNotEmpty()) 1f else 0.4f)
                         .clip(CardShape)
                         .background(colors.surface)
                         .border(1.dp, colors.border, CardShape)

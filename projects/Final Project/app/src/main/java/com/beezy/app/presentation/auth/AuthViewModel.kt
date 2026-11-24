@@ -54,6 +54,7 @@ class AuthViewModel(
 
     fun submit(onSuccess: () -> Unit) {
         val state = _uiState.value
+        if (state.isLoading) return
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
         viewModelScope.launch {

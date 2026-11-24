@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.beezy.app.domain.repository.CardRepository
 import com.beezy.app.domain.repository.DeckRepository
 import com.beezy.app.domain.usecase.GenerateQuizUseCase
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,23 +30,34 @@ class QuizViewModel(
 
     private fun loadQuiz() {
         viewModelScope.launch {
-            val deck = deckRepository.getDeckById(deckId, userId)
-            val deckCards = cardRepository.getCardsForDeck(deckId, userId)
-            val allCards = cardRepository.getAllCards(userId)
+            try {
+                val deck = deckRepository.getDeckById(deckId, userId)
+                val deckCards = cardRepository.getCardsForDeck(deckId, userId)
+                val allCards = cardRepository.getAllCards(userId)
 
-            val questions = generateQuizUseCase(deckCards, allCards)
+                val questions = generateQuizUseCase(deckCards, allCards)
 
-            _uiState.update {
-                it.copy(
-                    deck = deck,
-                    questions = questions,
-                    currentIndex = 0,
-                    selectedOptionIndex = null,
-                    isAnswerRevealed = false,
-                    score = 0,
-                    isQuizComplete = false,
-                    isLoading = false
-                )
+                _uiState.update {
+                    it.copy(
+                        deck = deck,
+                        questions = questions,
+                        currentIndex = 0,
+                        selectedOptionIndex = null,
+                        isAnswerRevealed = false,
+                        score = 0,
+                        isQuizComplete = false,
+                        isLoading = false
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Could not load this quiz. Please try again."
+                    )
+                }
             }
         }
     }

@@ -60,7 +60,7 @@ fun SessionCompleteDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "You reviewed $totalReviewed cards. Current deck maturity: $maturityPercentage%.",
+                    text = "You reviewed $totalReviewed ${if (totalReviewed == 1) "card" else "cards"}. Current deck maturity: $maturityPercentage%.",
                     color = colors.textSecondary,
                     fontSize = 14.sp,
                     textAlign = TextAlign.Center,
